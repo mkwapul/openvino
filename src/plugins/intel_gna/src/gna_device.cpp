@@ -243,6 +243,7 @@ Gna2DeviceVersion GNADeviceHelper::parseTarget(const std::string& target) {
         {common::kGnaTarget2_0, Gna2DeviceVersion2_0},
         {common::kGnaTarget3_0, Gna2DeviceVersion3_0},
         {common::kGnaTarget3_5, Gna2DeviceVersion3_5},
+        {common::kGnaTarget4_0, Gna2DeviceVersionEmbedded4_0},
         {common::kGnaTargetUnspecified, Gna2DeviceVersionSoftwareEmulation},
     };
     const auto f = targetMap.find(target);
@@ -602,6 +603,7 @@ std::string GNADeviceHelper::GetCompileTarget() const {
         {Gna2DeviceVersion3_0, common::kGnaTarget3_0},
         {Gna2DeviceVersion3_5, common::kGnaTarget3_5},
         {Gna2DeviceVersionEmbedded3_5, common::kGnaTarget3_5},
+        {Gna2DeviceVersionEmbedded4_0, common::kGnaTarget4_0},
     };
     const auto target = getTargetDevice(false);
     auto found = targetMap.find(target);
@@ -625,6 +627,7 @@ uint32_t GNADeviceHelper::retrieveMaxLayersCount() {
         return kMaxLayersCountGNA2_0;
     case Gna2DeviceVersion3_0:
     case Gna2DeviceVersion3_5:
+    case Gna2DeviceVersionEmbedded4_0:
     default:
         return kMaxLayersCountGNA3_X;
     }
