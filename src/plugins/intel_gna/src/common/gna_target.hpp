@@ -13,6 +13,7 @@ static constexpr const char* kGnaTarget2_0 = "GNA_TARGET_2_0";
 static constexpr const char* kGnaTarget3_0 = "GNA_TARGET_3_0";
 static constexpr const char* kGnaTarget3_1 = "GNA_TARGET_3_1";
 static constexpr const char* kGnaTarget3_5 = "GNA_TARGET_3_5";
+static constexpr const char* kGnaTarget3_6 = "GNA_TARGET_3_6";
 static constexpr const char* kGnaTarget4_0 = "GNA_TARGET_4_0";
 static constexpr const char* kGnaDefaultTarget = kGnaTarget3_0;
 
