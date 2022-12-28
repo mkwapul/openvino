@@ -31,6 +31,7 @@ const char* intel_dnn_operation_name[kDnnNumOp] = {
         "kDnnDiagonalOp",
         "kDnnConvolutional1dOp",
         "kDnnConvolutional2dOp",
+        "kDnnDWSCOp",
         "kDnnPiecewiselinearOp",
         "kDnnMaxPoolOp",
         "kDnnRecurrentOp",

@@ -194,24 +194,25 @@ void AMIntelDNN::InitConvolutional1DComponentPrivate(intel_dnn_component_t &comp
 }
 
 void AMIntelDNN::InitConvolutional2DComponentPrivate(intel_dnn_component_t& comp,
-                                            OvGnaTensor inputTensor,
-                                            OvGnaTensor outputTensor,
-                                            OvGnaTensor filterTensor,
-                                            OvGnaTensor biasTensor,
-                                            std::array<uint32_t, 2> convStride,
-                                            std::array<uint32_t, 2> zeroPadding,
-                                            float weight_scale_factor,
-                                            float output_scale_factor,
-                                            void*& ptr_inputs,
-                                            void*& ptr_outputs,
-                                            void*& ptr_filters,
-                                            void*& ptr_biases) {
+                                                              OvGnaTensor inputTensor,
+                                                              OvGnaTensor outputTensor,
+                                                              OvGnaTensor filterTensor,
+                                                              OvGnaTensor biasTensor,
+                                                              std::array<uint32_t, 2> convStride,
+                                                              std::array<uint32_t, 2> zeroPadding,
+                                                              float weight_scale_factor,
+                                                              float output_scale_factor,
+                                                              void*& ptr_inputs,
+                                                              void*& ptr_outputs,
+                                                              void*& ptr_filters,
+                                                              void*& ptr_biases,
+                                                              bool is_dwsc) {
     comp.tensors.clear();
     comp.tensors.push_back(inputTensor);
     comp.tensors.push_back(outputTensor);
     comp.tensors.push_back(filterTensor);
     comp.tensors.push_back(biasTensor);
-    comp.operation = kDnnConvolutional2dOp;
+    comp.operation = is_dwsc ? kDnnDWSCOp : kDnnConvolutional2dOp;
     comp.orientation_in = kDnnNonInterleavedOrientation;
     comp.orientation_out = kDnnNonInterleavedOrientation;
     comp.ptr_inputs = ptr_inputs;
@@ -1365,6 +1366,7 @@ uint32_t AMIntelDNN::CountLayers() {
             || (c.operation == kDnnDiagonalOp)
             || (c.operation == kDnnConvolutional1dOp)
             || (c.operation == kDnnConvolutional2dOp)
+            || (c.operation == kDnnDWSCOp)
             || (c.operation == kDnnDeinterleaveOp)
             || (c.operation == kDnnInterleaveOp)
             || (c.operation == kDnnRecurrentOp)
@@ -1478,6 +1480,28 @@ void AMIntelDNN::InitGNAStruct(Gna2Model *gnaModel, const std::string& gnaCompil
                 break;
             case kDnnConvolutional2dOp:
                 HelperGna2OperationInitConvolution(
+                    gnaOperation,
+                    gnaUserAllocator,
+                    gnaUserFree,
+                    createGna2Tensor(
+                        comp.tensors[0], comp.ptr_inputs),
+                    createGna2Tensor(
+                        comp.tensors[1], comp.ptr_outputs),
+                    createGna2Tensor(
+                        comp.tensors[2], comp.op.conv2D.ptr_filters),
+                    createGna2Tensor(
+                        comp.tensors[3], comp.op.conv2D.ptr_biases),
+                    nullptr,
+                    create_shape2D_parameter(
+                        comp.op.conv2D.convStride[0], comp.op.conv2D.convStride[1]),
+                    nullptr,
+                    create_shape2D_parameter(
+                        comp.op.conv2D.zeroPadding[0], comp.op.conv2D.zeroPadding[1]));
+
+                AdvanceCnnOperationIfAllApplied(component, i, gnaOperation);
+                break;
+            case kDnnDWSCOp:
+                HelperGna2OperationInitDWSC(
                     gnaOperation,
                     gnaUserAllocator,
                     gnaUserFree,

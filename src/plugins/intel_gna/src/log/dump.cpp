@@ -29,6 +29,7 @@ inline std::string GetLayerType(Gna2OperationType type) {
     case Gna2OperationTypeElementWiseAffine: return "Gna2OperationTypeElementWiseAffine";
     case Gna2OperationTypeRecurrent: return "Gna2OperationTypeRecurrent";
     case Gna2OperationTypeConvolution: return "Gna2OperationTypeConvolution";
+    case Gna2OperationTypeConvolutionDWSC: return "Gna2OperationTypeDWSC";
     case Gna2OperationTypeTransposition: return "Gna2OperationTypeTransposition";
     case Gna2OperationTypeCopy: return "Gna2OperationTypeCopy";
     default: return "Gna2OperationUNKNOWN";
@@ -256,6 +257,7 @@ inline std::string GetOperandType(Gna2DataType type) {
 inline std::string GetOperandName(Gna2OperationType type, size_t index) {
     static const std::map<Gna2OperationType, std::vector<std::string>> operationOperandNamesMap = {
         {Gna2OperationTypeConvolution, {"inputs", "outputs", "filters", "biases", "activationFunction"}},
+        {Gna2OperationTypeConvolutionDWSC, {"inputs", "outputs", "filters", "biases", "activationFunction", "saturationCount"}},
         {Gna2OperationTypeCopy, {"inputs", "outputs"}},
         {Gna2OperationTypeFullyConnectedAffine, {"inputs", "outputs", "weights", "biases", "activationFunction", "weightScaleFactors"}},
         {Gna2OperationTypeElementWiseAffine, {"inputs", "outputs", "weights", "biases", "activationFunction"}},
@@ -348,6 +350,7 @@ inline std::vector<std::string> GetParamaterNames(Gna2OperationType type) {
     // This map must be aligned with dumpParamMap in this file
     static const std::map<Gna2OperationType, std::vector<std::string>> operationParamaterNamesMap = {
         {Gna2OperationTypeConvolution, {"convolutionStride", "biasMode", "poolingMode", "poolingWindow", "poolingStride", "zeroPadding"}},
+        {Gna2OperationTypeConvolutionDWSC, {"convolutionStride", "biasMode", "poolingMode", "poolingWindow", "poolingStride", "zeroPadding"}},
         {Gna2OperationTypeCopy, {"shape (sub-tensor shape)"}},
         {Gna2OperationTypeFullyConnectedAffine, {"biasMode", "biasVectorIndex"}},
         {Gna2OperationTypeGmm, {"maximumScore"}},
@@ -363,6 +366,7 @@ inline dumpParameters GetParamDumpFunc(Gna2OperationType type) {
     // This map must be aligned with operationParamaterNamesMap in this file
     static const std::map<Gna2OperationType, dumpParameters> dumpParamMap = {
         {Gna2OperationTypeConvolution, DumpConvolutionParameters},
+        {Gna2OperationTypeConvolutionDWSC, DumpConvolutionParameters},
         {Gna2OperationTypeCopy, DumpCopyParameters},
         {Gna2OperationTypeFullyConnectedAffine, DumpFCAffineParameters},
         {Gna2OperationTypeGmm, DumpIntParameter},
