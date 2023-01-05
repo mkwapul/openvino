@@ -293,7 +293,7 @@ void HelperGna2OperationInitDWSC(Gna2Operation * operation,
     Gna2Shape* zeroPadding) {
     HelperGna2OperationInitConvolution(operation, userAllocator, userFree, inputs, outputs, filters, biases, activation, convolutionStride, biasMode,
         zeroPadding);
-    operation->Type = Gna2OperationTypeConvolutionDWSC;
+    operation->Type = static_cast<Gna2OperationType>(dwsc_op_code);
 }
 
 void HelperGna2OperationInitCopy(Gna2Operation * operation,

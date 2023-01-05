@@ -17,6 +17,9 @@ static constexpr const char* kGnaTarget3_6 = "GNA_TARGET_3_6";
 static constexpr const char* kGnaTarget4_0 = "GNA_TARGET_4_0";
 static constexpr const char* kGnaDefaultTarget = kGnaTarget3_0;
 
+static constexpr unsigned int gna_hw_ver_3_6 = 0x36e;
+static constexpr unsigned int gna_hw_ver_4_0 = 0x40e;
+
 }  // namespace common
 }  // namespace intel_gna
 }  // namespace ov

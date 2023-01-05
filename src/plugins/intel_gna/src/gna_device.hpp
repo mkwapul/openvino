@@ -53,8 +53,8 @@ class GNADeviceHelper : public ov::intel_gna::GNADevice {
 
     static const uint32_t TotalGna2InstrumentationPoints = 2;
     Gna2InstrumentationPoint gna2InstrumentationPoints[TotalGna2InstrumentationPoints] = {
-        Gna2InstrumentationPointHwTotal,
-        Gna2InstrumentationPointHwStall};
+        Gna2InstrumentationPointHwTotalCycles,
+        Gna2InstrumentationPointHwStallCycles};
 
     uint64_t instrumentationResults[TotalGna2InstrumentationPoints] = {};
     uint64_t instrumentationTotal[TotalGna2InstrumentationPoints] = {};

@@ -243,8 +243,8 @@ Gna2DeviceVersion GNADeviceHelper::parseTarget(const std::string& target) {
         {common::kGnaTarget2_0, Gna2DeviceVersion2_0},
         {common::kGnaTarget3_0, Gna2DeviceVersion3_0},
         {common::kGnaTarget3_5, Gna2DeviceVersion3_5},
-        {common::kGnaTarget3_6, Gna2DeviceVersionEmbedded3_6},
-        {common::kGnaTarget4_0, Gna2DeviceVersionEmbedded4_0},
+        {common::kGnaTarget3_6, static_cast<Gna2DeviceVersion>(common::gna_hw_ver_3_6)},
+        {common::kGnaTarget4_0, static_cast<Gna2DeviceVersion>(common::gna_hw_ver_4_0)},
         {common::kGnaTargetUnspecified, Gna2DeviceVersionSoftwareEmulation},
     };
     const auto f = targetMap.find(target);
@@ -423,7 +423,7 @@ const std::map <Gna2ErrorType, const std::string> GNADeviceHelper::errorReasons 
 const std::map<Gna2OperationType, const std::string> GNADeviceHelper::operationTypes = {
     {Gna2OperationTypeNone, "None"},
     {Gna2OperationTypeConvolution, "Convolution"},
-    {Gna2OperationTypeConvolutionDWSC, "Dwsc"},
+    {static_cast<Gna2OperationType>(dwsc_op_code), "Dwsc"},
     {Gna2OperationTypeCopy, "Copy"},
     {Gna2OperationTypeFullyConnectedAffine, "FullyConnectedAffine"},
     {Gna2OperationTypeElementWiseAffine, "ElementWiseAffine"},
@@ -438,11 +438,11 @@ const std::map<const std::pair<Gna2OperationType, int32_t>, const std::string> G
     {{Gna2OperationTypeConvolution, 2}, "Filters"},
     {{Gna2OperationTypeConvolution, 3}, "Biases"},
     {{Gna2OperationTypeConvolution, 4}, "Activation"},
-    {{Gna2OperationTypeConvolutionDWSC, 0}, "Input"},
-    {{Gna2OperationTypeConvolutionDWSC, 1}, "Output"},
-    {{Gna2OperationTypeConvolutionDWSC, 2}, "Filters"},
-    {{Gna2OperationTypeConvolutionDWSC, 3}, "Biases"},
-    {{Gna2OperationTypeConvolutionDWSC, 4}, "Activation"},
+    {{static_cast<Gna2OperationType>(dwsc_op_code), 0}, "Input"},
+    {{static_cast<Gna2OperationType>(dwsc_op_code), 1}, "Output"},
+    {{static_cast<Gna2OperationType>(dwsc_op_code), 2}, "Filters"},
+    {{static_cast<Gna2OperationType>(dwsc_op_code), 3}, "Biases"},
+    {{static_cast<Gna2OperationType>(dwsc_op_code), 4}, "Activation"},
     {{Gna2OperationTypeCopy, 0}, "Input"},
     {{Gna2OperationTypeCopy, 1}, "Output"},
     {{Gna2OperationTypeFullyConnectedAffine, 0}, "Input"},
@@ -608,8 +608,8 @@ std::string GNADeviceHelper::GetCompileTarget() const {
         {Gna2DeviceVersion3_0, common::kGnaTarget3_0},
         {Gna2DeviceVersion3_5, common::kGnaTarget3_5},
         {Gna2DeviceVersionEmbedded3_5, common::kGnaTarget3_5},
-        {Gna2DeviceVersionEmbedded3_6, common::kGnaTarget3_6},
-        {Gna2DeviceVersionEmbedded4_0, common::kGnaTarget4_0},
+        {static_cast<Gna2DeviceVersion>(common::gna_hw_ver_3_6), common::kGnaTarget3_6},
+        {static_cast<Gna2DeviceVersion>(common::gna_hw_ver_4_0), common::kGnaTarget4_0},
     };
     const auto target = getTargetDevice(false);
     auto found = targetMap.find(target);
@@ -633,8 +633,8 @@ uint32_t GNADeviceHelper::retrieveMaxLayersCount() {
         return kMaxLayersCountGNA2_0;
     case Gna2DeviceVersion3_0:
     case Gna2DeviceVersion3_5:
-    case Gna2DeviceVersionEmbedded3_6:
-    case Gna2DeviceVersionEmbedded4_0:
+    case static_cast<Gna2DeviceVersion>(common::gna_hw_ver_3_6):
+    case static_cast<Gna2DeviceVersion>(common::gna_hw_ver_4_0):
     default:
         return kMaxLayersCountGNA3_X;
     }

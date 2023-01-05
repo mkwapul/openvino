@@ -415,7 +415,7 @@ public:
                       const uint32_t strideW,
                       const uint32_t dilationH,
                       const uint32_t dilationW,
-                      bool exception = true) const;
+                      bool exception = true) const override;
 };
 
 bool UseOnly16BitConvolutionWeights(const Config& gna_config);

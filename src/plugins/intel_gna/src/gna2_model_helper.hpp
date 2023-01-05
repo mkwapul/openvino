@@ -28,6 +28,8 @@ constexpr uint32_t PoolStrideParamIdx = 4;
 constexpr uint32_t ZeroPaddingParamIdx = 5;
 constexpr uint32_t MaximumScoreParamIdx = 0;
 
+static constexpr uint32_t dwsc_op_code = 9;
+
 #define GNA_MAX_OP_PARAM 10
 typedef void (*GnaUserFree)(void*);
 
