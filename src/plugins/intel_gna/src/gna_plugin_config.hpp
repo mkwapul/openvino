@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include <gna2-inference-api.h>
-#include <gna2-common-api.h>
+#include "gna2-inference-api.h"
 #include "openvino/runtime/intel_gna/properties.hpp"
 #include "ie_precision.hpp"
-#include <ie_parameter.hpp>
+#include "ie_parameter.hpp"
 #include "descriptions/gna_flags.hpp"
+#include "common/gna_target.hpp"
 #include <vector>
 #include <map>
 #include <mutex>
@@ -34,10 +34,9 @@ struct Config {
         performance_mode = r.performance_mode;
         inference_precision = r.inference_precision;
         gnaPrecision = r.gnaPrecision;
-        dumpXNNPath = r.dumpXNNPath;
+        embedded_export_path = r.embedded_export_path;
         dumpXNNGeneration = r.dumpXNNGeneration;
-        gnaExecTarget = r.gnaExecTarget;
-        gnaCompileTarget = r.gnaCompileTarget;
+        target = r.target;
         pluginGna2AccMode = r.pluginGna2AccMode;
         swExactMode = r.swExactMode;
         inputScaleFactorsPerInput = r.inputScaleFactorsPerInput;
@@ -58,11 +57,10 @@ struct Config {
     ov::element::Type inference_precision = ov::element::undefined;
     InferenceEngine::Precision gnaPrecision = InferenceEngine::Precision::I16;
 
-    std::string dumpXNNPath;
+    std::string embedded_export_path;
     std::string dumpXNNGeneration;
 
-    std::string gnaExecTarget;
-    std::string gnaCompileTarget;
+    common::Target target;
 
     Gna2AccelerationMode pluginGna2AccMode = Gna2AccelerationModeSoftware;
     bool swExactMode = true;

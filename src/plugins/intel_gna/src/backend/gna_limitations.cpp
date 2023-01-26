@@ -18,6 +18,7 @@
 namespace ov {
 namespace intel_gna {
 namespace limitations {
+using namespace common;
 namespace cnn2d {
 
 bool IsEqualToLimit::isValid(const uint32_t val) const {
@@ -391,15 +392,22 @@ bool Validator_36::ValidateDwsc(const std::string& name,
     return ValidationSuccesful(throwOnError, error, name, "DWSC");
 }
 
-std::unique_ptr<AbstractValidator> AbstractValidator::Create(const std::string& target) {
-    if (target == common::kGnaTarget3_0) {
+std::unique_ptr<AbstractValidator> AbstractValidator::Create(const DeviceVersion& target) {
+    switch (target) {
+    case DeviceVersion3_0:
         return tools::make_unique<Validator_30>();
-    } else if (target == common::kGnaTarget3_5) {
+        break;
+    case DeviceVersion3_5:
+    case DeviceVersionEmbedded3_5:
         return tools::make_unique<Validator_35>();
-    } else if (target == common::kGnaTarget3_6 || target == common::kGnaTarget4_0) {
+        break;
+    case DeviceVersionEmbedded3_6:
+    case DeviceVersionEmbedded4_0:
         return tools::make_unique<Validator_36>();
+        break;
+    default:
+        return nullptr;
     }
-    return nullptr;
 }
 
 void AbstractValidator::ThrowIfNotEmpty(const std::string& prefix, const std::string& error) {
@@ -421,8 +429,9 @@ bool AbstractValidator::ValidationSuccesful(const bool throwOnError,
 }
 
 bool UseOnly16BitConvolutionWeights(const Config& gna_config) {
-    return (gna_config.gnaCompileTarget == common::kGnaTarget2_0 ||
-            gna_config.gnaCompileTarget == common::kGnaTarget3_0);
+    return (gna_config.target.user_set_compile_target == common::DeviceVersion2_0 ||
+            gna_config.target.user_set_compile_target == common::DeviceVersion3_0) ||
+           gna_config.target.user_set_compile_target == common::DeviceVersionEmbedded3_1;
 }
 
 }  // namespace cnn2d

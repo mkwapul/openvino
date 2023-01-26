@@ -4,7 +4,6 @@
 
 #include <cmath>
 #include "openvino/runtime/common.hpp"
-#include "openvino/runtime/intel_gna/properties.hpp"
 #include <gna/gna_config.hpp>
 #include "gna_plugin.hpp"
 #include "gna_plugin_config.hpp"
@@ -19,10 +18,10 @@
 
 using namespace InferenceEngine;
 using namespace InferenceEngine::details;
-using namespace ov::intel_gna::common;
 
 namespace ov {
 namespace intel_gna {
+using namespace common;
 
 const uint8_t Config::max_num_requests;
 
@@ -43,15 +42,6 @@ static const caseless_unordered_map<std::string, std::pair<Gna2AccelerationMode,
     {GNAConfigParams::GNA_AVX2_EXACT,           {Gna2AccelerationModeAvx2,                          true}},
 };
 OPENVINO_SUPPRESS_DEPRECATED_END
-
-static const std::set<std::string> supportedTargets = {
-    common::kGnaTarget2_0,
-    common::kGnaTarget3_0,
-    common::kGnaTarget3_5,
-    common::kGnaTarget3_6,
-    common::kGnaTarget4_0,
-    common::kGnaTargetUnspecified
-};
 
 void Config::UpdateFromMap(const std::map<std::string, std::string>& config) {
     for (auto&& item : config) {
@@ -86,16 +76,13 @@ void Config::UpdateFromMap(const std::map<std::string, std::string>& config) {
             return static_cast<uint8_t>(num_requests);
         };
 
-        auto set_target = [&](const std::string& target) {
-            if (supportedTargets.count(target) == 0) {
-                THROW_GNA_EXCEPTION << "Unsupported GNA config value (key, value): (" << key << ", " << value << ")";
-            }
+        auto set_target = [&](const DeviceVersion& target_version) {
             if (key == GNA_CONFIG_KEY(EXEC_TARGET) || key == ov::intel_gna::execution_target) {
-                gnaExecTarget = target;
-                if (gnaCompileTarget == "")
-                    gnaCompileTarget = target;
+                target.user_set_execution_target = target_version;
+                if (target.user_set_compile_target == DeviceVersionNotSet)
+                    target.user_set_compile_target = target_version;
             } else {
-                gnaCompileTarget = target;
+                target.user_set_compile_target = target_version;
             }
         };
 
@@ -134,7 +121,7 @@ void Config::UpdateFromMap(const std::map<std::string, std::string>& config) {
             }
             inputScaleFactors[input_index] = InferenceEngine::CNNLayer::ie_parse_float(value);
         } else if (key == GNA_CONFIG_KEY(FIRMWARE_MODEL_IMAGE) || key ==  ov::intel_gna::firmware_model_image_path) {
-            dumpXNNPath = value;
+            embedded_export_path = value;
 OPENVINO_SUPPRESS_DEPRECATED_START
         } else if (key == GNA_CONFIG_KEY(FIRMWARE_MODEL_IMAGE_GENERATION)) {
             dumpXNNGeneration = value;
@@ -154,25 +141,17 @@ OPENVINO_SUPPRESS_DEPRECATED_START
 OPENVINO_SUPPRESS_DEPRECATED_END
         } else if (key == ov::intel_gna::execution_target || key == ov::intel_gna::compile_target) {
             auto target = ov::util::from_string(value, ov::intel_gna::execution_target);
-            std::string target_str = "";
-            if (ov::intel_gna::HWGeneration::GNA_2_0 == target) {
-                target_str = common::kGnaTarget2_0;
-            } else if (ov::intel_gna::HWGeneration::GNA_3_0 == target) {
-                target_str = common::kGnaTarget3_0;
-            } else if (ov::intel_gna::HWGeneration::GNA_3_5 == target) {
-                target_str = common::kGnaTarget3_5;
-            } else if (ov::intel_gna::HWGeneration::GNA_3_6 == target) {
-                target_str = common::kGnaTarget3_6;
-            } else if (ov::intel_gna::HWGeneration::GNA_4_0 == target) {
-                target_str = common::kGnaTarget4_0;
-            }
-            set_target(target_str);
+            set_target(HwGenerationToDevice(target));
         } else if (key == GNA_CONFIG_KEY(EXEC_TARGET)) {
             check_compatibility(ov::intel_gna::execution_target.name());
-            set_target(value);
+            set_target(StringToDevice(value));
         } else if (key == GNA_CONFIG_KEY(COMPILE_TARGET)) {
+            const auto target = StringToDevice(value);
+            if (!embedded_export_path.empty() && !IsEmbeddedDevice(target)) {
+                THROW_GNA_EXCEPTION << "Target device for embedded export should be one of embedded devices";
+            }
             check_compatibility(ov::intel_gna::compile_target.name());
-            set_target(value);
+            set_target(target);
         } else if (key == GNA_CONFIG_KEY(COMPACT_MODE) || key ==  ov::intel_gna::memory_reuse) {
             if (value == PluginConfigParams::YES) {
                 gnaFlags.compact_mode = true;
@@ -309,7 +288,7 @@ void Config::AdjustKeyMapValues() {
                     std::to_string(inputScaleFactors[n]);
         }
     }
-    keyConfigMap[ov::intel_gna::firmware_model_image_path.name()] = dumpXNNPath;
+    keyConfigMap[ov::intel_gna::firmware_model_image_path.name()] = embedded_export_path;
     IE_SUPPRESS_DEPRECATED_START
     keyConfigMap[GNA_CONFIG_KEY(FIRMWARE_MODEL_IMAGE_GENERATION)] = dumpXNNGeneration;
     IE_SUPPRESS_DEPRECATED_END
@@ -327,8 +306,8 @@ void Config::AdjustKeyMapValues() {
     }
     IE_ASSERT(!device_mode.empty());
     keyConfigMap[ov::intel_gna::execution_mode.name()] = device_mode;
-    keyConfigMap[GNA_CONFIG_KEY(EXEC_TARGET)] = gnaExecTarget;
-    keyConfigMap[GNA_CONFIG_KEY(COMPILE_TARGET)] = gnaCompileTarget;
+    keyConfigMap[GNA_CONFIG_KEY(EXEC_TARGET)] = target.user_set_execution_target;
+    keyConfigMap[GNA_CONFIG_KEY(COMPILE_TARGET)] = target.user_set_compile_target;
     keyConfigMap[ov::intel_gna::memory_reuse.name()] =
             gnaFlags.compact_mode ? PluginConfigParams::YES : PluginConfigParams::NO;
     keyConfigMap[CONFIG_KEY(EXCLUSIVE_ASYNC_REQUESTS)] =
@@ -365,19 +344,9 @@ Parameter Config::GetParameter(const std::string& name) const {
     } else if (name == ov::intel_gna::pwl_design_algorithm) {
         return gnaFlags.pwl_design_algorithm;
     } else if (name ==  ov::intel_gna::execution_target) {
-        return ((gnaExecTarget == common::kGnaTarget2_0) ? ov::intel_gna::HWGeneration::GNA_2_0 :
-                (gnaExecTarget == common::kGnaTarget3_0) ? ov::intel_gna::HWGeneration::GNA_3_0 :
-                (gnaExecTarget == common::kGnaTarget3_5) ? ov::intel_gna::HWGeneration::GNA_3_5 :
-                (gnaExecTarget == common::kGnaTarget3_5) ? ov::intel_gna::HWGeneration::GNA_3_6 :
-                (gnaExecTarget == common::kGnaTarget4_0) ? ov::intel_gna::HWGeneration::GNA_4_0 :
-                ov::intel_gna::HWGeneration::UNDEFINED);
+        return DeviceToHwGeneration(target.user_set_execution_target);
     } else if (name ==  ov::intel_gna::compile_target) {
-        return ((gnaCompileTarget == common::kGnaTarget2_0) ? ov::intel_gna::HWGeneration::GNA_2_0 :
-                (gnaCompileTarget == common::kGnaTarget3_0) ? ov::intel_gna::HWGeneration::GNA_3_0 :
-                (gnaCompileTarget == common::kGnaTarget3_5) ? ov::intel_gna::HWGeneration::GNA_3_5 :
-                (gnaCompileTarget == common::kGnaTarget3_5) ? ov::intel_gna::HWGeneration::GNA_3_6 :
-                (gnaCompileTarget == common::kGnaTarget4_0) ? ov::intel_gna::HWGeneration::GNA_4_0 :
-                ov::intel_gna::HWGeneration::UNDEFINED);
+        return DeviceToHwGeneration(target.user_set_compile_target);
     } else if (name == ov::hint::performance_mode) {
         return performance_mode;
     } else if (name ==  ov::hint::inference_precision) {

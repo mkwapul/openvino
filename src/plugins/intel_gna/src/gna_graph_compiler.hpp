@@ -81,7 +81,7 @@ public:
         const uint32_t windowH, const uint32_t windowW,
         const uint32_t strideH, const uint32_t strideW) const;
 
-    void SetValidatorTarget(const std::string& target);
+    void SetValidatorTarget(const common::DeviceVersion& target);
 
     /**
     * Connects either memory output, or generic output to a layer

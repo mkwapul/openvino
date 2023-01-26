@@ -11,6 +11,7 @@
 #include <legacy/ie_layers.h>
 #include "gna_lib_ver_selector.hpp"
 #include "gna_plugin_config.hpp"
+#include "common/gna_target.hpp"
 
 namespace ov {
 namespace intel_gna {
@@ -210,7 +211,7 @@ public:
                                OvGnaType inPrecision,
                                bool exception = true) const = 0;
 
-    static std::unique_ptr<AbstractValidator> Create(const std::string&);
+    static std::unique_ptr<AbstractValidator> Create(const common::DeviceVersion& target);
 };
 
 class Validator_30 : public AbstractValidator {
