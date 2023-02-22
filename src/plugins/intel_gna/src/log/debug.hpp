@@ -6,7 +6,7 @@
 
 #include <ie_common.h>
 
-#ifdef  GNA_DEBUG
+#ifdef  GNA_DEBUG_NONE
 
 /**
  * @brief used for creating graphviz charts, and layers dump

@@ -24,7 +24,7 @@ enum DeviceVersion {
     DeviceVersionEmbedded3_5 = 0x35e,
     DeviceVersionEmbedded3_6 = 0x36e,
     DeviceVersionEmbedded4_0 = 0x40e,
-    DeviceVersionDefault = DeviceVersion3_0
+    DeviceVersionDefault = DeviceVersionEmbedded4_0
 };
 
 class Target {
@@ -32,8 +32,8 @@ class Target {
 
 public:
     DeviceVersion detected_device_version = DeviceVersionSoftwareEmulation;
-    DeviceVersion user_set_execution_target = DeviceVersionNotSet;
-    DeviceVersion user_set_compile_target = DeviceVersionNotSet;
+    DeviceVersion user_set_execution_target = DeviceVersionEmbedded4_0;
+    DeviceVersion user_set_compile_target = DeviceVersionEmbedded4_0;
 
     DeviceVersion get_effective_execution_target() const;
     DeviceVersion get_effective_compile_target(const bool device_helper) const;

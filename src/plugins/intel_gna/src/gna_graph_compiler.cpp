@@ -737,6 +737,21 @@ void GNAGraphCompiler::finalizeConvolution2DPrimitive(InferenceEngine::CNNLayerP
 
     auto& currentComponent = dnnComponents.addComponent(convolution.name, is_dwsc ? "dwsc" : "convolution");
 
+    if (convolution._padding_y != convolution._pads_end_y) {
+        log::error() << convolution.name << ": convolution._padding_y != convolution._pads_end_y using bigger"
+                     << convolution._padding_y
+                       << "!=" << convolution._pads_end_y << "\n";
+        convolution._padding_y = std::max(convolution._padding_y, convolution._pads_end_y);
+        convolution._pads_end_y = convolution._padding_y;
+    }
+
+    if (convolution._padding_x != convolution._pads_end_x) {
+        log::error() << convolution.name << ": convolution._padding_x != convolution._pads_end_x using bigger"
+                     << convolution._padding_x << "!=" << convolution._pads_end_x << "\n";
+        convolution._padding_x = std::max(convolution._padding_x, convolution._pads_end_x);
+        convolution._pads_end_x = convolution._padding_x;
+    }
+
     dnn->InitConvolutional2DComponent(currentComponent,
                                       {{in_batch, in_height, in_width, in_channels}, inputPrec, {}},  // NHWC for GNA
                                       {{out_batch, out_height, out_width, out_channels}, outputPrec, {}},
@@ -1004,7 +1019,7 @@ void GNAGraphCompiler::PoolingPrimitive(InferenceEngine::CNNLayerPtr layer) {
     switch (pooling._type) {
     case PoolingLayer::MAX: break;
         // we are loosing precision here
-    case PoolingLayer::AVG:
+    case PoolingLayer::AVG: break;
     default:
         // TODO: convert to SUMM pooling
         THROW_GNA_EXCEPTION << "Layer :" << layer->name << " not supported";
@@ -1574,12 +1589,14 @@ void GNAGraphCompiler::AffinePrimitive(InferenceEngine::CNNLayerPtr layer, bool 
     bool useBiasConnection = false;
     if (LayerInfo(prevLayer).has32BOutput()) {
         if (weightable._biases) {
-            THROW_GNA_EXCEPTION << "Layer: "
+            log::error() << "Layer: "
                 << layer->name << ", cannot be connected to its parent: " << prevLayer->name
                 << " due to precision mismatch";
+        } else {
+            log::debug() << "Connection " << prevLayer->name << " to " << layer->name << " is using BIAS as input"
+                         << std::endl;
+            useBiasConnection = true;
         }
-        log::debug() << "Connection " << prevLayer->name << " to " << layer->name << " is using BIAS as input" << std::endl;
-        useBiasConnection = true;
     }
 
     auto& currentComponent = dnnComponents.addComponent(layer->name, (isDiag ? "diagonal" : "affine"));

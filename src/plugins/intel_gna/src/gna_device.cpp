@@ -514,7 +514,7 @@ void GNADeviceHelper::open() {
         createVirtualDevice(target.user_set_execution_target);
         updateGnaDeviceVersion();
         if (target.detected_device_version != target.user_set_execution_target) {
-            THROW_GNA_EXCEPTION << "Wrong virtual GNA device version reported: " << target.detected_device_version
+            log::error() << "Wrong virtual GNA device version reported: " << target.detected_device_version
                                 << " instead of: " << target.user_set_execution_target;
         }
     } else {

@@ -343,10 +343,10 @@ bool Validator_35::ValidateInputPadding(const std::string& name,
     const IsLessThanLimit padding_h_limit{kernel_h, "convolution input padding height (must be less than kernel height)"};
     const IsLessThanLimit padding_w_limit{kernel_w, "convolution input padding width (must be less than kernel width)"};
 
-    auto error = padding_h_symetric.GetErrorOrEmpty(pad_h_begin);
-    error += padding_w_symetric.GetErrorOrEmpty(pad_w_begin);
+    //auto error = padding_h_symetric.GetErrorOrEmpty(pad_h_begin);
+    //error += padding_w_symetric.GetErrorOrEmpty(pad_w_begin);
 
-    error += padding_h_limit.GetErrorOrEmpty(pad_h_begin);
+    auto error = padding_h_limit.GetErrorOrEmpty(pad_h_begin);
     error += padding_w_limit.GetErrorOrEmpty(pad_w_begin);
 
     return ValidationSuccesful(throwOnError, error, name, "Convolution2D");

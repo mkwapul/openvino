@@ -306,8 +306,8 @@ void Config::AdjustKeyMapValues() {
     }
     IE_ASSERT(!device_mode.empty());
     keyConfigMap[ov::intel_gna::execution_mode.name()] = device_mode;
-    keyConfigMap[GNA_CONFIG_KEY(EXEC_TARGET)] = target.user_set_execution_target;
-    keyConfigMap[GNA_CONFIG_KEY(COMPILE_TARGET)] = target.user_set_compile_target;
+    //keyConfigMap[GNA_CONFIG_KEY(EXEC_TARGET)] = target.user_set_execution_target;
+    //keyConfigMap[GNA_CONFIG_KEY(COMPILE_TARGET)] = target.user_set_compile_target;
     keyConfigMap[ov::intel_gna::memory_reuse.name()] =
             gnaFlags.compact_mode ? PluginConfigParams::YES : PluginConfigParams::NO;
     keyConfigMap[CONFIG_KEY(EXCLUSIVE_ASYNC_REQUESTS)] =

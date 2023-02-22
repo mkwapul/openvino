@@ -1604,6 +1604,7 @@ void AMIntelDNN::InitGNAStruct(Gna2Model *gnaModel) {
                         || (component[i - 1].operation == kDnnRecurrentOp)
                         || (component[i - 1].operation == kDnnConvolutional1dOp)
                         || (component[i - 1].operation == kDnnConvolutional2dOp)
+                        || (component[i - 1].operation == kDnnDWSCOp)
                         || ((component[i - 1].operation == kDnnMaxPoolOp) &&
                         (component[i - 2].operation == kDnnConvolutional1dOp
                             || component[i - 2].operation == kDnnConvolutional2dOp))) {
