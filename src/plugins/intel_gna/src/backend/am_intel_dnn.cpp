@@ -105,12 +105,12 @@ void AMIntelDNN::InitAffineComponentPrivate(intel_dnn_component_t &comp,
     comp.num_columns_in = num_columns;
     comp.num_rows_out = num_rows_out;
     comp.num_columns_out = num_columns;
-    comp.num_bytes_per_input = num_bytes_per_input;
-    comp.num_bytes_per_output = num_bytes_per_output;
+    comp.num_bytes_per_input = 1;
+    comp.num_bytes_per_output = num_bytes_per_output==4?4:1;
     comp.operation = isDiag ? kDnnDiagonalOp : kDnnAffineOp;
     comp.orientation_in = kDnnInterleavedOrientation;
     comp.orientation_out = kDnnInterleavedOrientation;
-    comp.op.affine.num_bytes_per_weight = num_bytes_per_weight;
+    comp.op.affine.num_bytes_per_weight = 1;
     comp.op.affine.num_bytes_per_bias = num_bytes_per_bias;
     comp.op.affine.weight_scale_factor = weight_scale_factor;
     comp.output_scale_factor = output_scale_factor;
@@ -208,6 +208,7 @@ void AMIntelDNN::InitConvolutional2DComponentPrivate(intel_dnn_component_t& comp
                                                               void*& ptr_biases,
                                                               bool is_dwsc) {
     comp.tensors.clear();
+    inputTensor.type = OvGnaTypeInt8;
     comp.tensors.push_back(inputTensor);
     comp.tensors.push_back(outputTensor);
     comp.tensors.push_back(filterTensor);

@@ -106,7 +106,7 @@ Gna2Tensor * createGna2BiasTensor1D(uint32_t x, uint32_t byteSize, void* data) {
     const auto input = reinterpret_cast<Gna2Tensor*>(gnaUserAllocator(sizeof(Gna2Tensor)));
     IE_ASSERT(input != nullptr);
     if (byteSize == 8) {
-        *input = HelperGna2TensorInit1D(x, Gna2DataTypeCompoundBias, data);
+        *input = HelperGna2TensorInit1D(x, Gna2DataTypeInt32, data);
     } else {
         *input = HelperGna2TensorInit1D(x, Gna2DataTypeFromBytes(byteSize), data);
     }

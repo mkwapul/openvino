@@ -195,7 +195,7 @@ public:
                                             num_rows,
                                             num_columns,
                                             num_bytes_per_input,
-                                            num_bytes_per_output,
+                                            1,
                                             num_segments,
                                             output_scale_factor,
                                             input_scale_factor,
