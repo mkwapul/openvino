@@ -326,6 +326,7 @@ InferenceEngine::Precision LayerQuantizer::GetOutputPrecision() {
 InferenceEngine::Precision GetBiasesPrecision(const LayerInfo& layer_info,
                                               const QuantizedLayerParams& quant_layer_params,
                                               const Config& gna_config) {
+    return InferenceEngine::Precision::I16;
     if (layer_info.isConvolution() || layer_info.isConvolutionFilter() || layer_info.isScaleShift()) {
         return InferenceEngine::Precision::I32;
     }
@@ -357,6 +358,7 @@ InferenceEngine::Precision GetInputPrecision() {
 InferenceEngine::Precision GetWeightsPrecision(const LayerInfo& layer_info,
                                                const QuantizedLayerParams& quant_layer_params,
                                                const Config& gna_config) {
+    return InferenceEngine::Precision::I8;
     if ((layer_info.isConvolution() || layer_info.isConvolutionFilter()) &&
             limitations::cnn2d::UseOnly16BitConvolutionWeights(gna_config)
         || layer_info.isScaleShift()) {

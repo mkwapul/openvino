@@ -809,7 +809,12 @@ void GNAGraphCompiler::finalizeConvolution2DPrimitive(InferenceEngine::CNNLayerP
     std::vector<uint8_t> transposedWeights;
     const auto singleKernelSize = in_channels / convolution._group * kernelHW * convolution.precision.size();
     const auto kernelPad = Gna2RoundUp(singleKernelSize, 16) - singleKernelSize;
-    for (uint32_t k = 0; k < convolution._out_depth; k++) {
+    auto number_of_kernels_to_combine = convolution._out_depth;
+    if (is_dwsc) {
+        //for DWSC the RO for weights was requested too big so we fix this up a bit
+        number_of_kernels_to_combine /= convolution._group;
+    }
+    for (uint32_t k = 0; k < number_of_kernels_to_combine; k++) {
         uint8_t* ptr_filt_current
             = convolution._weights->cbuffer().as<uint8_t*>() +
             k * singleKernelSize;
@@ -2223,6 +2228,7 @@ void GNAGraphCompiler::PermutePrimitive(InferenceEngine::CNNLayerPtr layer) {
     void* ptr_outputs = nullptr;
 
     if (squeezedInputOrder.size() > 2) {
+        return; //for centernet permutes are dropped as thy are at the end of a model
         THROW_GNA_LAYER_EXCEPTION(layer) << "unsupported permute (requested transpose is not 2D)";
     }
 

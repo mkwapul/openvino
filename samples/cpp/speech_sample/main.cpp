@@ -19,6 +19,7 @@
 
 // clang-format off
 #include <openvino/openvino.hpp>
+#include <openvino/op/ops.hpp>
 #include <openvino/runtime/intel_gna/properties.hpp>
 
 #include <samples/args_helper.hpp>
@@ -27,11 +28,13 @@
 #include "fileutils.hpp"
 #include "speech_sample.hpp"
 #include "utils.hpp"
+
 // clang-format on
 
 using namespace ov::preprocess;
 
-/**
+std::string convNameToCut = "StatefulPartitionedCall/CenterNetLFFDGNA/GNAStemV5/conv1/Conv2D";
+    /**
  * @brief The entry point for OpenVINO Runtime automatic speech recognition sample
  * @file speech_sample/main.cpp
  * @example speech_sample/main.cpp
@@ -106,6 +109,19 @@ int main(int argc, char* argv[]) {
         if (!FLAGS_m.empty()) {
             const auto outputs_with_ports = parse_to_extract_port(outputs);
             model = core.read_model(FLAGS_m);
+            if (FLAGS_m == "centernet.xml")  // centernet
+            {
+                auto inputs_1 = model->get_parameters();
+                auto new_shape_const = std::make_shared<ov::op::v0::Constant>(ov::element::i64,
+                                                       ov::Shape{4},
+                                                       std::vector<int64_t>{1, 16, 64, 64});
+                auto r = std::make_shared<ov::op::v1::Reshape>(inputs_1[0], new_shape_const, false);
+                for (auto n : model->get_ops()) {
+                    if(n->get_friendly_name() == convNameToCut) {
+                        n->input(0).replace_source_output(r);
+                    }
+                }
+            }
             for (const auto& output_with_port : outputs_with_ports) {
                 auto output = model->add_output(output_with_port.first, output_with_port.second);
                 output.set_names({output_with_port.first + ":" + std::to_string(output_with_port.second)});

@@ -24,7 +24,7 @@ enum DeviceVersion {
     DeviceVersionEmbedded3_5 = 0x35e,
     DeviceVersionEmbedded3_6 = 0x36e,
     DeviceVersionEmbedded4_0 = 0x40e,
-    DeviceVersionDefault = DeviceVersionEmbedded4_0
+    DeviceVersionDefault = DeviceVersionEmbedded3_6
 };
 
 class Target {
@@ -32,8 +32,8 @@ class Target {
 
 public:
     DeviceVersion detected_device_version = DeviceVersionSoftwareEmulation;
-    DeviceVersion user_set_execution_target = DeviceVersionEmbedded4_0;
-    DeviceVersion user_set_compile_target = DeviceVersionEmbedded4_0;
+    DeviceVersion user_set_execution_target = DeviceVersionDefault;
+    DeviceVersion user_set_compile_target = DeviceVersionDefault;
 
     DeviceVersion get_effective_execution_target() const;
     DeviceVersion get_effective_compile_target(const bool device_helper) const;
@@ -48,7 +48,6 @@ static constexpr const char* kGnaTarget3_5 = "GNA_TARGET_3_5";
 static constexpr const char* kGnaTarget3_5_e = "GNA_TARGET_3_5_E";
 static constexpr const char* kGnaTarget3_6 = "GNA_TARGET_3_6";
 static constexpr const char* kGnaTarget4_0 = "GNA_TARGET_4_0";
-static constexpr const char* kGnaDefaultTarget = kGnaTarget3_0;
 
 DeviceVersion HwGenerationToDevice(const HWGeneration& target);
 HWGeneration DeviceToHwGeneration(const DeviceVersion& target);

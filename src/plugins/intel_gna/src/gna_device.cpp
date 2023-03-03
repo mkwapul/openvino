@@ -46,7 +46,7 @@ GNADeviceHelper::GNADeviceHelper(const Target& targetIn,
       nGnaDeviceIndex{selectGnaDevice()},
       useDeviceEmbeddedExport(deviceEmbedded) {
     per_request_diagnostics = log::get_log_level() >= ov::log::Level::TRACE;
-    per_model_diagnostics = log::get_log_level() >= ov::log::Level::DEBUG;
+    per_model_diagnostics = log::get_log_level() >= ov::log::Level::INFO;
     open();
     initGnaPerfCounters();
 
@@ -216,7 +216,8 @@ uint32_t GNADeviceHelper::createModel(Gna2Model& gnaModel) const {
             "./";
 #endif
         const std::string mode = useDeviceEmbeddedExport ? "_ee" : "";
-        const auto fileSuffix = mode + "_devVersion_" + toHexString(target.detected_device_version);
+        const auto detected_device_version = updateGnaDeviceVersion();
+        const auto fileSuffix = mode + "_devVersion_" + toHexString(detected_device_version);
         dump::DumpGna2Model(gnaModel, path, false, allAllocations, fileSuffix);
     }
 
@@ -495,11 +496,12 @@ void GNADeviceHelper::createVirtualDevice(DeviceVersion devVersion) {
     GNADeviceHelper::checkGna2Status(status, "Gna2DeviceCreateForExport(" + std::to_string(devVersion) + ")");
 }
 
-void GNADeviceHelper::updateGnaDeviceVersion() {
+Gna2DeviceVersion GNADeviceHelper::updateGnaDeviceVersion() const {
     Gna2DeviceVersion device_version;
     //&target.detected_device_version
     const auto status = Gna2DeviceGetVersion(nGnaDeviceIndex, &device_version);
     checkGna2Status(status, "Gna2DeviceGetVersion");
+    return device_version;
 }
 
 void GNADeviceHelper::open() {

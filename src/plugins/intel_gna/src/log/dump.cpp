@@ -442,7 +442,12 @@ void DumpGna2Model(const Gna2Model& gnaModel,
     }
 
     dumpFile << "Layers (operations) count: " << opsNo << "\n";
-
+    int roSizeTotal = 0;
+    int stateSizeTotal = 0;
+    int inSizeTotal = 0;
+    int outSizeTotal = 0;
+    int maxScratchPerLayer = 0;
+    int allTheOtherSum = 0;
     for (size_t i = 0; i < opsNo; i++) {
         const auto& operation = gnaModel.Operations[i];
 
@@ -451,7 +456,7 @@ void DumpGna2Model(const Gna2Model& gnaModel,
         dumpFile << "Layer (operation): " << i << "\n";
         dumpFile << "Layer (operation) type: " << GetLayerType(operation.Type) << "\n";
         dumpFile << "Number of possible operands: " << operation.NumberOfOperands << "\n";
-
+        int perLayerScratchSize = 0;
         for (size_t j = 0; j < operation.NumberOfOperands; j++) {
             if (operation.Operands[j] == nullptr) {
                 dumpFile << "\tOperand " << j << " == nullptr\n";
@@ -471,12 +476,26 @@ void DumpGna2Model(const Gna2Model& gnaModel,
                 foundName = found->GetTagName();
                 offset = found->getOffset(operand.Data).second;
             }
+            auto bSize = Gna2RoundUpTo64(GetGnaShapeSize(operand.Shape, GetTypeByteSize(operand.Type)));
+            if (foundName == "Gna2MemoryTagReadOnly") {
+                roSizeTotal += bSize;
+            } else if (foundName == "Gna2MemoryTagScratch") {
+                perLayerScratchSize += bSize;
+            } else if (foundName == "Gna2MemoryTagState") {
+                stateSizeTotal += bSize;
+            } else if (foundName == "Gna2MemoryTagInput") {
+                inSizeTotal += bSize;
+            } else if (foundName == "Gna2MemoryTagOutput") {
+                outSizeTotal += bSize;
+            } else {
+                allTheOtherSum += bSize;
+            }
             dumpFile << "\tOperand " << j << " (" << GetOperandName(operation.Type, j) << ")"
                 << " type: " << GetOperandType(operand.Type) <<
                 " shape: " << GetSimpleString(operand.Shape) <<
                 " tag: " << foundName <<
                 " offset: " << offset <<
-                " size: " << Gna2RoundUpTo64(GetGnaShapeSize(operand.Shape, GetTypeByteSize(operand.Type))) <<
+                " size: " << bSize <<
                 " data: " << operand.Data <<
                 " baseAlloc: " << foundPtr <<
                 " layout: ";
@@ -508,7 +527,9 @@ void DumpGna2Model(const Gna2Model& gnaModel,
                 } while (NextElement(elementIndex, operand.Shape));
             }
         }
-
+        if (perLayerScratchSize > maxScratchPerLayer) {
+            maxScratchPerLayer = perLayerScratchSize;
+        }
         dumpFile << "Parameters: \n";
 
         if (operation.NumberOfParameters > 0 && GetParamDumpFunc(operation.Type) != nullptr) {
@@ -519,6 +540,19 @@ void DumpGna2Model(const Gna2Model& gnaModel,
             }
         }
     }
+
+    dumpFile << "RO size summed = " << roSizeTotal << "\n";
+    log::info() << "RO size summed = " << roSizeTotal << "\n";
+    dumpFile << "Scratch size summed = " << maxScratchPerLayer << "\n";
+    log::info() << "Scratch size summed = " << maxScratchPerLayer << "\n";
+    dumpFile << "Intput size summed = " << inSizeTotal << "\n";
+    log::info() << "Intput size summed = " << inSizeTotal << "\n";
+    dumpFile << "Output size summed = " << outSizeTotal << "\n";
+    log::info() << "Output size summed = " << outSizeTotal << "\n";
+    dumpFile << "State size summed = " << stateSizeTotal << "\n";
+    log::info() << "State size summed = " << stateSizeTotal << "\n";
+    dumpFile << "Other regions size summed = " << allTheOtherSum << "\n";
+    log::info() << "Other regions size summed = " << allTheOtherSum << "\n";
 }
 
 } // namespace dump

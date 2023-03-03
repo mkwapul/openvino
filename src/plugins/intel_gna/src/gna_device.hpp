@@ -54,8 +54,8 @@ class GNADeviceHelper : public GNADevice {
 
     static const uint32_t TotalGna2InstrumentationPoints = 2;
     Gna2InstrumentationPoint gna2InstrumentationPoints[TotalGna2InstrumentationPoints] = {
-        Gna2InstrumentationPointHwTotalCycles,
-        Gna2InstrumentationPointHwStallCycles};
+        Gna2InstrumentationPointHwTotal,
+        Gna2InstrumentationPointHwStall};
 
     uint64_t instrumentationResults[TotalGna2InstrumentationPoints] = {};
     uint64_t instrumentationTotal[TotalGna2InstrumentationPoints] = {};
@@ -180,7 +180,7 @@ private:
     static void enforceLegacyCnnsWhenNeeded(Gna2Model& gnaModel);
 
     void createVirtualDevice(common::DeviceVersion devVersion);
-    void updateGnaDeviceVersion();
+    Gna2DeviceVersion updateGnaDeviceVersion() const;
 
     void initGnaPerfCounters() {
         std::unique_lock<std::mutex> lockGnaCalls{acrossPluginsSync};
