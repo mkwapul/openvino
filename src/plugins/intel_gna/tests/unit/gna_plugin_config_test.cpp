@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include <gna/gna_config.hpp>
 #include "gna_plugin_config.hpp"
-#include <gtest/gtest.h>
+
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+#include <gna/gna_config.hpp>
 #include <map>
+
+#include "common/gna_target.hpp"
 
 using namespace InferenceEngine;
 using namespace ov::intel_gna;
@@ -97,7 +101,7 @@ TEST_F(GNAPluginConfigTest, GnaConfigScaleFactorTest) {
 
 TEST_F(GNAPluginConfigTest, GnaConfigFirmwareModelImageTest) {
     SetAndCompare(GNA_CONFIG_KEY(FIRMWARE_MODEL_IMAGE), "abc");
-    EXPECT_EQ(config.dumpXNNPath, "abc");
+    EXPECT_EQ(config.embedded_export_path, "abc");
 }
 
 TEST_F(GNAPluginConfigTest, GnaConfigDeviceModeTest) {
@@ -193,20 +197,20 @@ IE_SUPPRESS_DEPRECATED_END
 
 TEST_F(GNAPluginConfigTest, GnaConfigGnaExecTargetTest) {
     SetAndCompare(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_2_0");
-    EXPECT_EQ(config.gnaExecTarget, "GNA_TARGET_2_0");
+    EXPECT_EQ(config.target.user_set_execution_target, common::StringToDevice("GNA_TARGET_2_0"));
     SetAndCompare(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_3_0");
-    EXPECT_EQ(config.gnaExecTarget, "GNA_TARGET_3_0");
+    EXPECT_EQ(config.target.user_set_execution_target, common::StringToDevice("GNA_TARGET_3_0"));
 
     ExpectThrow(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_3_7");
 
     SetAndCompare(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_3_5");
-    EXPECT_EQ(config.gnaExecTarget, "GNA_TARGET_3_5");
+    EXPECT_EQ(config.target.user_set_execution_target, common::StringToDevice("GNA_TARGET_3_5"));
 
     SetAndCompare(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_3_6");
-    EXPECT_EQ(config.gnaExecTarget, "GNA_TARGET_3_6");
+    EXPECT_EQ(config.target.user_set_execution_target, common::StringToDevice("GNA_TARGET_3_6"));
 
     SetAndCompare(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_4_0");
-    EXPECT_EQ(config.gnaExecTarget, "GNA_TARGET_4_0");
+    EXPECT_EQ(config.target.user_set_execution_target, common::StringToDevice("GNA_TARGET_4_0"));
 
     ExpectThrow(GNA_CONFIG_KEY(EXEC_TARGET), "0");
     ExpectThrow(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_1_5");
@@ -215,20 +219,20 @@ TEST_F(GNAPluginConfigTest, GnaConfigGnaExecTargetTest) {
 
 TEST_F(GNAPluginConfigTest, GnaConfigGnaCompileTargetTest) {
     SetAndCompare(GNA_CONFIG_KEY(COMPILE_TARGET), "GNA_TARGET_2_0");
-    EXPECT_EQ(config.gnaCompileTarget, "GNA_TARGET_2_0");
+    EXPECT_EQ(config.target.user_set_compile_target, common::StringToDevice("GNA_TARGET_2_0"));
     SetAndCompare(GNA_CONFIG_KEY(COMPILE_TARGET), "GNA_TARGET_3_0");
-    EXPECT_EQ(config.gnaCompileTarget, "GNA_TARGET_3_0");
+    EXPECT_EQ(config.target.user_set_compile_target, common::StringToDevice("GNA_TARGET_3_0"));
 
     ExpectThrow(GNA_CONFIG_KEY(COMPILE_TARGET), "GNA_TARGET_3_7");
 
     SetAndCompare(GNA_CONFIG_KEY(COMPILE_TARGET), "GNA_TARGET_3_5");
-    EXPECT_EQ(config.gnaCompileTarget, "GNA_TARGET_3_5");
+    EXPECT_EQ(config.target.user_set_compile_target, common::StringToDevice("GNA_TARGET_3_5"));
 
     SetAndCompare(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_3_6");
-    EXPECT_EQ(config.gnaExecTarget, "GNA_TARGET_3_6");
+    EXPECT_EQ(config.target.user_set_execution_target, common::StringToDevice("GNA_TARGET_3_6"));
 
     SetAndCompare(GNA_CONFIG_KEY(EXEC_TARGET), "GNA_TARGET_4_0");
-    EXPECT_EQ(config.gnaExecTarget, "GNA_TARGET_4_0");
+    EXPECT_EQ(config.target.user_set_execution_target, common::StringToDevice("GNA_TARGET_4_0"));
 
     ExpectThrow(GNA_CONFIG_KEY(COMPILE_TARGET), "0");
     ExpectThrow(GNA_CONFIG_KEY(COMPILE_TARGET), "GNA_TARGET_1_5");

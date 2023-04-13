@@ -31,8 +31,8 @@ typedef struct {
 std::vector<GroupConvModelTestParams> all_tests{
     {models[0], Gna2DeviceVersion3_5, false},
     {models[1], Gna2DeviceVersion3_5, false},
-    {models[0], static_cast<Gna2DeviceVersion>(common::gna_hw_ver_3_6), true},
-    {models[1], static_cast<Gna2DeviceVersion>(common::gna_hw_ver_3_6), true}};
+    {models[0], static_cast<Gna2DeviceVersion>(common::DeviceVersionEmbedded3_6), true},
+    {models[1], static_cast<Gna2DeviceVersion>(common::DeviceVersionEmbedded3_6), true}};
 
 class GNAPluginDwscLoadTest : public ::testing::Test, public ::testing::WithParamInterface<GroupConvModelTestParams> {
     std::shared_ptr<ngraph::Function> function;

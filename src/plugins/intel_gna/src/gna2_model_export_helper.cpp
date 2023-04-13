@@ -64,7 +64,7 @@ void* ExportSueLegacyUsingGnaApi2(uint32_t modelId, uint32_t deviceIndex, Gna2Mo
 static_assert(std::numeric_limits<float>::is_iec559, "Float is not IEC 559 compatible");
 typedef std::array<char, sizeof(Gna2TlvRecord) + sizeof(float)> TlvFloatRecord;
 
-TlvFloatRecord GetFloatInTLV(Gna2TlvType type, float value) {
+static TlvFloatRecord GetFloatInTLV(Gna2TlvType type, float value) {
     TlvFloatRecord r;
     reinterpret_cast<Gna2TlvRecord*>(r.data())->type = type;
     reinterpret_cast<Gna2TlvRecord*>(r.data())->length = sizeof(float);
@@ -72,7 +72,7 @@ TlvFloatRecord GetFloatInTLV(Gna2TlvType type, float value) {
     return r;
 }
 
-std::vector<char> GetStringAsTlv(Gna2TlvType type, const std::string& s) {
+static std::vector<char> GetStringAsTlv(Gna2TlvType type, const std::string& s) {
     std::vector<char> record(sizeof(Gna2TlvRecord));
     reinterpret_cast<Gna2TlvRecord*>(record.data())->type = type;
 
@@ -83,10 +83,10 @@ std::vector<char> GetStringAsTlv(Gna2TlvType type, const std::string& s) {
     return record;
 }
 
-std::string WriteAllEndpoints(std::ostream& outStream,
-                              const std::vector<GnaEndpoint>& allEndpoints,
-                              const Gna2TlvType sfTlvType,
-                              const GnaAllocation* allocation) {
+static std::string WriteAllEndpoints(std::ostream& outStream,
+                                     const std::vector<GnaEndpoint>& allEndpoints,
+                                     const Gna2TlvType sfTlvType,
+                                     const GnaAllocation* allocation) {
     const std::string endPointType = sfTlvType == Gna2TlvTypeOVInputScaleFactor ? "Input" : "Output";
 
     if (allEndpoints.size() >= 1) {
@@ -121,7 +121,7 @@ std::string WriteAllEndpoints(std::ostream& outStream,
     return stream.str();
 }
 
-void WriteStringToTlv(std::ostream& outStream, const Gna2TlvType tlvType, const std::string& value) {
+static void WriteStringToTlv(std::ostream& outStream, const Gna2TlvType tlvType, const std::string& value) {
     const auto& valueTlv = GetStringAsTlv(tlvType, value);
     outStream.write(valueTlv.data(), valueTlv.size());
 }

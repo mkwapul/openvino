@@ -405,7 +405,7 @@ struct ValidateCnn2DParams {
 class GNACnn2DValidatorTest : public ::testing::TestWithParam<GNACnn2DValidatorTestParam> {
 protected:
     void SetUp() override  {
-        validator = cnn2d::AbstractValidator::Create(GetParam().target);
+        validator = cnn2d::AbstractValidator::Create(ov::intel_gna::common::StringToDevice(GetParam().target));
         ASSERT_TRUE(validator != nullptr);
     }
     std::unique_ptr<cnn2d::AbstractValidator> validator;

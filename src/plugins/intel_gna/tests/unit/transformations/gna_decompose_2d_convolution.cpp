@@ -4,16 +4,17 @@
 
 #include <gtest/gtest.h>
 
-#include <tuple>
-
-#include "transformations/decompose_2d_convolution.hpp"
-#include "common_test_utils/ngraph_test_utils.hpp"
 #include <ngraph/function.hpp>
 #include <ngraph/opsets/opset7.hpp>
 #include <ngraph/pass/manager.hpp>
 #include <transformations/init_node_info.hpp>
 #include <transformations/utils/utils.hpp>
+#include <tuple>
+
 #include "backend/gna_limitations.hpp"
+#include "common/gna_target.hpp"
+#include "common_test_utils/ngraph_test_utils.hpp"
+#include "transformations/decompose_2d_convolution.hpp"
 
 namespace testing {
 
@@ -736,13 +737,18 @@ void execute_test(modelType model, std::shared_ptr<ngraph::Function> function, s
     case modelType::TranspConvBcastAddMaxPoolTransp:
     case modelType::TranspConvBcastAddActTransp:
     case modelType::TranspConvBcastAddMaxPoolActTransp:
-        manager.register_pass<ov::intel_gna::pass::Decompose2DConv>("", gnaPrecision);
+        manager.register_pass<ov::intel_gna::pass::Decompose2DConv>(ov::intel_gna::common::StringToDevice(""),
+                                                                    gnaPrecision);
         break;
     case modelType::TranspConvTranspBcastAdd:
-        manager.register_pass<ov::intel_gna::pass::Decompose2DConvTransposedWithBias>("", gnaPrecision);
+        manager.register_pass<ov::intel_gna::pass::Decompose2DConvTransposedWithBias>(
+            ov::intel_gna::common::StringToDevice(""),
+            gnaPrecision);
         break;
     case modelType::TranspConvTranspBcastAddAct:
-        manager.register_pass<ov::intel_gna::pass::Decompose2DConvTransposedWithBiasAF>("", gnaPrecision);
+        manager.register_pass<ov::intel_gna::pass::Decompose2DConvTransposedWithBiasAF>(
+            ov::intel_gna::common::StringToDevice(""),
+            gnaPrecision);
         break;
     }
 

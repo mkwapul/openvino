@@ -106,7 +106,7 @@ void AMIntelDNN::InitAffineComponentPrivate(intel_dnn_component_t &comp,
     comp.num_rows_out = num_rows_out;
     comp.num_columns_out = num_columns;
     comp.num_bytes_per_input = 1;
-    comp.num_bytes_per_output = num_bytes_per_output==4?4:1;
+    comp.num_bytes_per_output = num_bytes_per_output == 4 ? 4 : 1;
     comp.operation = isDiag ? kDnnDiagonalOp : kDnnAffineOp;
     comp.orientation_in = kDnnInterleavedOrientation;
     comp.orientation_out = kDnnInterleavedOrientation;
