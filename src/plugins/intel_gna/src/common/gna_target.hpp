@@ -24,7 +24,7 @@ enum DeviceVersion {
     DeviceVersionEmbedded3_5 = 0x35e,
     DeviceVersionEmbedded3_6 = 0x36e,
     DeviceVersionEmbedded4_0 = 0x40e,
-    DeviceVersionDefault = DeviceVersionEmbedded3_6
+    DeviceVersionDefault = DeviceVersionEmbedded4_0
 };
 
 class Target {
