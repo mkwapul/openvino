@@ -199,6 +199,16 @@ void ExportTlvModel(uint32_t modelId,
 
     uint32_t outTlvSize = 0;
 
+    uint32_t exportConfigId = 0;
+    auto performanceEstimatesExport = std::pair<void*, uint32_t>{nullptr, 0};
+    auto res = Gna2ModelExport(exportConfigId,
+                               Gna2ModelExportComponentPerformanceEstimates,
+                               &performanceEstimatesExport.first,
+                               &performanceEstimatesExport.second);
+
+    IE_ASSERT(Gna2StatusSuccess == res);
+    IE_ASSERT(nullptr != performanceEstimatesExport.first);
+
     auto tlv_status = Gna2ExportTlv(static_cast<Gna2DeviceVersion>(export_target),
                                     gnaUserAllocator,
                                     &outTlv,
@@ -215,8 +225,8 @@ void ExportTlvModel(uint32_t modelId,
                                     gnaLibraryVersion.c_str(),
                                     nullptr,
                                     0,
-                                    nullptr,
-                                    0);
+                                    static_cast<char*>(performanceEstimatesExport.first),
+                                    performanceEstimatesExport.second);
 
     if (Gna2TlvStatusSuccess == tlv_status) {
         outStream.write(outTlv, outTlvSize);
