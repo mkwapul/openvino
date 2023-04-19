@@ -3,20 +3,21 @@
 //
 
 #include "gna2_model_export_helper.hpp"
-#include "gna2_model_helper.hpp"
-#include "gna_device.hpp"
-#include "gna2-model-export-api.h"
-#include "gna2-model-suecreek-header.h"
-#include "gna2-device-api.h"
-#include "gna/gna_config.hpp"
-#include "common/versioning.hpp"
-#include "log/log.hpp"
 
-#include "gna2-tlv-writer.h"
-
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <numeric>
+
+#include "common/versioning.hpp"
+#include "gna/gna_config.hpp"
+#include "gna2-device-api.h"
+#include "gna2-model-export-api.h"
+#include "gna2-model-suecreek-header.h"
+#include "gna2-tlv-writer.h"
+#include "gna2_model_helper.hpp"
+#include "gna_device.hpp"
+#include "log/log.hpp"
 
 namespace ov {
 namespace intel_gna {
@@ -242,6 +243,13 @@ void ExportTlvModel(uint32_t modelId,
         const auto& ovVersionString = ov::intel_gna::get_openvino_version_string();
         WriteStringToTlv(outStream, Gna2TlvTypeOVVersion, ovVersionString);
     }
+
+    std::for_each(
+        static_cast<uint32_t*>(performanceEstimatesExport.first),
+        static_cast<uint32_t*>(performanceEstimatesExport.first) + performanceEstimatesExport.second / sizeof(uint32_t),
+        [](uint32_t elem) {
+            log::info() << elem << std::endl;
+        });
 
     gnaUserFree(outTlv);
 
