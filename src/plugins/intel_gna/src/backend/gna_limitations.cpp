@@ -403,6 +403,7 @@ std::unique_ptr<AbstractValidator> AbstractValidator::Create(const DeviceVersion
         break;
     case DeviceVersionEmbedded3_6:
     case DeviceVersionEmbedded4_0:
+    case DeviceVersionEmbedded4_0_8CE:
         return tools::make_unique<Validator_36>();
         break;
     default:
