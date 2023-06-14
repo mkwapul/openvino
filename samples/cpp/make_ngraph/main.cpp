@@ -34,8 +34,8 @@
 #include "ngraph/opsets/opset1.hpp"
 #include "ngraph/opsets/opset2.hpp"
 #include "ngraph/opsets/opset3.hpp"
+#include "ngraph/pass/serialize.hpp"
 #include "transformations/common_optimizations/common_optimizations.hpp"
-#include "transformations/serialize.hpp"
 
 using namespace InferenceEngine;
 using namespace ngraph;
@@ -426,7 +426,6 @@ std::shared_ptr<Function> createNgraphFunctionCustomer(std::vector<std::string> 
             size_t H = dims[i][1];
             size_t W = dims[i][2];
             size_t C = dims[i][3];
-            auto across_channels = false;
             auto normalize_variance = true;
             float epsilon = 1e-5f;
             op::MVNEpsMode eps_mode = op::MVNEpsMode::INSIDE_SQRT;
@@ -544,7 +543,8 @@ std::shared_ptr<Function> createNgraphFunctionCustomer(std::vector<std::string> 
     }
     auto output_2d = std::make_shared<ngraph::opset1::Reshape>(
         upstream[0],
-        op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, num_elements})->output(0),
+        op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, static_cast<unsigned long long>(num_elements)})
+            ->output(0),
         false);
     setNodeNames(output_2d, "Reshape2D");
     auto result_full = std::make_shared<op::Result>(output_2d->output(0));
@@ -604,7 +604,6 @@ int main(int argc, char* argv[]) {
 
     ngraph::pass::Manager manager;
     manager.register_pass<ngraph::pass::Serialize>(xml_name, bin_name, ngraph::pass::Serialize::Version::IR_V11);
-    const auto& pass_config = manager.get_pass_config();
     manager.run_passes(createNgraphFunctionCustomer(operators, dimensions));
 
     return 0;
