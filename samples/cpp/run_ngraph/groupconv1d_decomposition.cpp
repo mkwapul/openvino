@@ -62,7 +62,7 @@ bool ngraph::pass::GroupConvolution1dDecomposition::run_on_model(const std::shar
         }
 
         // find Transpose-->Convolution--><Add>-->Transpose pattern else skip
-        Output<Node>& parent = conv->input_value(0);
+        Output<Node> parent = conv->input_value(0);
         auto children = conv->output(0).get_target_inputs();
         if (children.size() != 1) {
             continue;

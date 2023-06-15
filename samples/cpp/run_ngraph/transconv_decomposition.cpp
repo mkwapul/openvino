@@ -387,7 +387,7 @@ bool ngraph::pass::TransposeConvolutionDecomposition::run_on_model(const std::sh
         // ========== 1D cases ===========
         else if (is_1D || (W_new == input_shape[3])) {  // 1D in H direction case
 
-            Output<Node>& source = transpose_before->input_value(0);
+            Output<Node> source = transpose_before->input_value(0);
             std::vector<std::vector<std::vector<size_t>>> kernel_list;  // list of kernel layouts
             std::vector<std::vector<int32_t>> input_list;               // list of input endpoints
 
@@ -569,7 +569,7 @@ bool ngraph::pass::TransposeConvolutionDecomposition::run_on_model(const std::sh
             is_graph_modfied = true;
 
         } else if (H_new == input_shape[2]) {
-            Output<Node>& source = transpose_before->input_value(0);
+            Output<Node> source = transpose_before->input_value(0);
             std::vector<std::vector<std::vector<size_t>>> kernel_list;  // list of kernel layouts
             std::vector<std::vector<int32_t>> input_list;               // list of input endpoints
 
@@ -730,7 +730,7 @@ bool ngraph::pass::TransposeConvolutionDecomposition::run_on_model(const std::sh
         // ========== 2D stride (S,1) cases ===========
         else if (strides[1] == 1) {  // zero insertion in H direction only
 
-            Output<Node>& source = transpose_before->input_value(0);
+            Output<Node> source = transpose_before->input_value(0);
             std::vector<std::vector<std::vector<size_t>>> kernel_list;  // list of kernel layouts
             std::vector<std::vector<int32_t>> input_list;               // list of input endpoints
 
