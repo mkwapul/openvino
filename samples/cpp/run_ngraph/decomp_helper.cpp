@@ -128,7 +128,7 @@ std::shared_ptr<ov::Node> AdlChannelPadTensor(Output<Node> parent) {
     return (result);
 }
 
-std::shared_ptr<ov::Node> AdlChannelPadKernel(Output<Node>& weights_const_output, size_t C) {
+std::shared_ptr<ov::Node> AdlChannelPadKernel(const Output<Node>& weights_const_output, size_t C) {
     std::shared_ptr<ov::Node> result = nullptr;
 
     auto weights_const =
@@ -157,7 +157,6 @@ std::shared_ptr<ov::Node> AdlChannelPadKernel(Output<Node>& weights_const_output
 
     return (result);
 }
-
 
 std::shared_ptr<ov::Node> NchwToNhwc(Output<Node> parent) {
     std::shared_ptr<ov::Node> result = nullptr;
