@@ -5,7 +5,7 @@
 set(TARGET_NAME "run_ngraph")
 
 file (GLOB MAIN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-file (GLOB MAIN_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file (GLOB MAIN_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
 ie_add_sample(NAME run_ngraph
               SOURCES ${MAIN_SRC}
