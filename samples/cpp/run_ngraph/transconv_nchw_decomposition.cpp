@@ -414,7 +414,9 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                     false);
                 size_t H_start = input_list[n][0];
                 size_t H_stop = input_list[n][1] + 1;
-                auto slice_start = op::Constant::create(ngraph::element::i64, Shape{3}, {0ull, H_start, 0ull});
+                auto slice_start = op::Constant::create(ngraph::element::i64,
+                                                        Shape{3},
+                                                        std::initializer_list<decltype(H_start)>{0ull, H_start, 0ull});
                 auto slice_stop = op::Constant::create(ngraph::element::i64, Shape{3}, {C, H_stop, W});
                 auto slice_step = op::Constant::create(ngraph::element::i64, Shape{3}, {1ull, 1ull, 1ull});
                 auto new_slice =
@@ -514,7 +516,9 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                         InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
                         auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                             upstream[0],
-                            op::Constant::create(ngraph::element::i64, Shape{4}, {N, weights_shape[1], H_out, 1ull})
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{4},
+                                                 std::initializer_list<decltype(N)>{N, weights_shape[1], H_out, 1ull})
                                 ->output(0),
                             false);
                         parts.push_back(new_reshape->output(0));
@@ -527,7 +531,9 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                     InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
                     auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                         upstream[0],
-                        op::Constant::create(ngraph::element::i64, Shape{4}, {N, weights_shape[1], H_out, 1ull})
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{4},
+                                             std::initializer_list<decltype(N)>{N, weights_shape[1], H_out, 1ull})
                             ->output(0),
                         false);
                     parts.push_back(new_reshape->output(0));
@@ -537,7 +543,10 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
             if (is_1D) {  // if 3D original input tensor then reshape back to 3D
                 auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                     new_concat->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{3}, {N, weights_shape[1], H_new, 1ull})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{3},
+                                         std::initializer_list<decltype(N)>{N, weights_shape[1], H_new, 1ull})
+                        ->output(0),
                     false);
             }
             if (reshape_after != nullptr) {
@@ -577,7 +586,10 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
             for (size_t n = 0; n < input_list.size(); n++) {
                 size_t W_start = input_list[n][0];
                 size_t W_stop = input_list[n][1] + 1;
-                auto slice_start = op::Constant::create(ngraph::element::i64, Shape{4}, {0ull, 0ull, 0ull, W_start});
+                auto slice_start =
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         std::initializer_list<decltype(W_start)>{0ull, 0ull, 0ull, W_start});
                 auto slice_stop = op::Constant::create(ngraph::element::i64, Shape{4}, {N, C, H, W_stop});
                 auto slice_step = op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, 1ull, 1ull, 1ull});
                 auto new_slice = std::make_shared<v8::Slice>(source, slice_start, slice_stop, slice_step);
@@ -672,7 +684,10 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                         InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
                         auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                             upstream[0],
-                            op::Constant::create(ngraph::element::i64, Shape{4}, {N, weights_shape[1], 1ull, W_out})
+                            op::Constant::create(
+                                ngraph::element::i64,
+                                Shape{4},
+                                std::initializer_list<decltype(W_out)>{N, weights_shape[1], 1ull, W_out})
                                 ->output(0),
                             false);
                         parts.push_back(new_reshape->output(0));
@@ -685,7 +700,9 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                     InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
                     auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                         upstream[0],
-                        op::Constant::create(ngraph::element::i64, Shape{4}, {N, weights_shape[1], 1ull, W_out})
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{4},
+                                             std::initializer_list<decltype(N)>{N, weights_shape[1], 1ull, W_out})
                             ->output(0),
                         false);
                     parts.push_back(new_reshape->output(0));
@@ -736,7 +753,9 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                     false);
                 size_t H_start = input_list[n][0];
                 size_t H_stop = input_list[n][1] + 1;
-                auto slice_start = op::Constant::create(ngraph::element::i64, Shape{3}, {0ull, H_start, 0ull});
+                auto slice_start = op::Constant::create(ngraph::element::i64,
+                                                        Shape{3},
+                                                        std::initializer_list<decltype(H_start)>{0ull, H_start, 0ull});
                 auto slice_stop = op::Constant::create(ngraph::element::i64, Shape{3}, {C, H_stop, W});
                 auto slice_step = op::Constant::create(ngraph::element::i64, Shape{3}, {1ull, 1ull, 1ull});
                 auto new_slice =

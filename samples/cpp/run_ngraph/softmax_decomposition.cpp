@@ -115,7 +115,8 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
 
         auto parent_1d = std::make_shared<ngraph::opset1::Reshape>(
             parent,
-            op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, H * W})->output(0),
+            op::Constant::create(ngraph::element::i64, Shape{2}, std::initializer_list<decltype(H)>{1ull, H * W})
+                ->output(0),
             false);
         auto parent_2d = std::make_shared<ngraph::opset1::Reshape>(
             parent,
@@ -165,7 +166,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                 }
                 auto reshape_2 = std::make_shared<ngraph::opset1::Reshape>(
                     upstream[0],
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, W_new, 1ull, 8ull})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         std::initializer_list<decltype(W_new)>{1ull, W_new, 1ull, 8ull})
+                        ->output(0),
                     false);
                 auto transpose_1 =
                     std::make_shared<op::Transpose>(reshape_2->output(0),
@@ -190,14 +194,20 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                 W_new = W_new / 6;
                 auto reshape_3 = std::make_shared<ngraph::opset1::Reshape>(
                     transpose_2->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{2}, {W_new, 8ull})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{2},
+                                         std::initializer_list<decltype(W_new)>{W_new, 8ull})
+                        ->output(0),
                     false);
                 upstream[0] = reshape_3->output(0);
             }
             // process the final pool to produce 1x8 vector of 8 maximums
             auto reshape_4 = std::make_shared<ngraph::opset1::Reshape>(
                 upstream[0],
-                op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, W_new, 1ull, 8ull})->output(0),
+                op::Constant::create(ngraph::element::i64,
+                                     Shape{4},
+                                     std::initializer_list<decltype(W_new)>{1ull, W_new, 1ull, 8ull})
+                    ->output(0),
                 false);
             auto transpose_3 =
                 std::make_shared<op::Transpose>(reshape_4->output(0),
@@ -247,9 +257,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                 ngraph::opset1::Constant::create(ngraph::element::i64,
                                                  ngraph::Shape{2},
                                                  {0ull, 0ull}),  // begin slice index
-                ngraph::opset1::Constant::create(ngraph::element::i64,
-                                                 ngraph::Shape{2},
-                                                 {8 - (H_new - H), 0ull}),  // end slice index
+                ngraph::opset1::Constant::create(
+                    ngraph::element::i64,
+                    ngraph::Shape{2},
+                    std::initializer_list<decltype(H_new)>{8 - (H_new - H), 0ull}),  // end slice index
                 ngraph::opset1::Constant::create(ngraph::element::i64, ngraph::Shape{2}, {1ull, 1ull}),  // strides
                 std::vector<int64_t>{0, 1},                                                              // begin mask
                 std::vector<int64_t>{0, 1},                                                              // end mask
@@ -258,7 +269,8 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                 std::vector<int64_t>{0, 0});
             auto reshape_6b = std::make_shared<op::v1::Reshape>(
                 slice_6->output(0),
-                op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, H * W})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{2}, std::initializer_list<decltype(H)>{1ull, H * W})
+                    ->output(0),
                 false);
             // Subtract the maximum from each vector
             auto x_minus_max = std::make_shared<op::v1::Add>(parent_1d->output(0), reshape_6b->output(0));
@@ -266,7 +278,9 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
             auto exp_x_minus_max = std::make_shared<op::Exp>(x_minus_max->output(0));
             auto reshape_7 = std::make_shared<op::v1::Reshape>(
                 exp_x_minus_max->output(0),
-                op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, H * num_parts, 1ull, W / num_parts})
+                op::Constant::create(ngraph::element::i64,
+                                     Shape{4},
+                                     std::initializer_list<decltype(H)>{1ull, H * num_parts, 1ull, W / num_parts})
                     ->output(0),
                 false);
             auto transpose_7 =
@@ -284,7 +298,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                                                 op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
             auto reshape_avg_conv_1 = std::make_shared<ngraph::opset1::Reshape>(
                 avg_conv_1->output(0),
-                op::Constant::create(ngraph::element::i64, Shape{4}, {N, 1ull, H, 8 * num_parts})->output(0),
+                op::Constant::create(ngraph::element::i64,
+                                     Shape{4},
+                                     std::initializer_list<decltype(H)>{N, 1ull, H, 8 * num_parts})
+                    ->output(0),
                 false);
             auto transpose_8 =
                 std::make_shared<op::Transpose>(reshape_avg_conv_1->output(0),
@@ -301,7 +318,8 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                                                 op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
             auto avg_conv_2_1d = std::make_shared<ngraph::opset1::Reshape>(
                 avg_conv_2,
-                op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, H * W})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{2}, std::initializer_list<decltype(H)>{1ull, H * W})
+                    ->output(0),
                 false);
             auto log_avg_1d = std::make_shared<op::Log>(avg_conv_2_1d->output(0));
             auto diff_1 = std::make_shared<op::v1::Add>(x_minus_max->output(0), minus_log_W_const->output(0));
@@ -320,7 +338,8 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
             } else if (softmax_shape.size() == 3) {
                 auto reshape_8 = std::make_shared<ngraph::opset1::Reshape>(
                     softmax_output_1d->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{3}, {1ull, H, W})->output(0),
+                    op::Constant::create(ngraph::element::i64, Shape{3}, std::initializer_list<decltype(H)>{1ull, H, W})
+                        ->output(0),
                     false);
                 if (nullptr != softmax_v1) {
                     ngraph::replace_node(softmax_v1, reshape_8);
@@ -330,7 +349,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
             } else {
                 auto reshape_8 = std::make_shared<ngraph::opset1::Reshape>(
                     softmax_output_1d->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, 1ull, H, W})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         std::initializer_list<decltype(H)>{1ull, 1ull, H, W})
+                        ->output(0),
                     false);
                 if (nullptr != softmax_v1) {
                     ngraph::replace_node(softmax_v1, reshape_8);
@@ -346,11 +368,15 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
             for (size_t s = 0; s < num_splits; s++) {
                 auto reshape_1_1d = std::make_shared<ngraph::opset1::Reshape>(
                     split->output(s),
-                    op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, 8 * W})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{2},
+                                         std::initializer_list<decltype(W)>{1ull, 8 * W})
+                        ->output(0),
                     false);
                 auto reshape_1_2d = std::make_shared<ngraph::opset1::Reshape>(
                     split->output(s),
-                    op::Constant::create(ngraph::element::i64, Shape{2}, {8ull, W})->output(0),
+                    op::Constant::create(ngraph::element::i64, Shape{2}, std::initializer_list<decltype(W)>{8ull, W})
+                        ->output(0),
                     false);
                 auto transpose_part =
                     std::make_shared<op::Transpose>(reshape_1_2d->output(0),
@@ -375,7 +401,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                     }
                     auto reshape_2 = std::make_shared<ngraph::opset1::Reshape>(
                         section[0],
-                        op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, W_new, 1ull, 8ull})->output(0),
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{4},
+                                             std::initializer_list<decltype(W_new)>{1ull, W_new, 1ull, 8ull})
+                            ->output(0),
                         false);
                     auto transpose_1 = std::make_shared<op::Transpose>(
                         reshape_2->output(0),
@@ -400,14 +429,20 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                     W_new = W_new / 6;
                     auto reshape_3 = std::make_shared<ngraph::opset1::Reshape>(
                         transpose_2->output(0),
-                        op::Constant::create(ngraph::element::i64, Shape{2}, {W_new, 8ull})->output(0),
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{2},
+                                             std::initializer_list<decltype(W_new)>{W_new, 8ull})
+                            ->output(0),
                         false);
                     section[0] = reshape_3->output(0);
                 }
                 // process the final pool to produce 1x8 vector of 8 maximums
                 auto reshape_4 = std::make_shared<ngraph::opset1::Reshape>(
                     section[0],
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, W_new, 1ull, 8ull})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         std::initializer_list<decltype(W_new)>{1ull, W_new, 1ull, 8ull})
+                        ->output(0),
                     false);
                 auto transpose_3 =
                     std::make_shared<op::Transpose>(reshape_4->output(0),
@@ -449,7 +484,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                                                     op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
                 auto reshape_6 = std::make_shared<op::v1::Reshape>(
                     transpose_6->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, 8 * W})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{2},
+                                         std::initializer_list<decltype(W)>{1ull, 8 * W})
+                        ->output(0),
                     false);
                 // Subtract the maximum from each vector
                 auto x_minus_max = std::make_shared<op::v1::Add>(reshape_1_1d->output(0), reshape_6->output(0));
@@ -457,7 +495,9 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                 auto exp_x_minus_max = std::make_shared<op::Exp>(x_minus_max->output(0));
                 auto reshape_7 = std::make_shared<op::v1::Reshape>(
                     exp_x_minus_max->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, 8 * num_parts, 1ull, W / num_parts})
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         std::initializer_list<decltype(W)>{1ull, 8 * num_parts, 1ull, W / num_parts})
                         ->output(0),
                     false);
                 auto transpose_7 =
@@ -475,7 +515,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                                                     op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
                 auto reshape_avg_conv_1 = std::make_shared<ngraph::opset1::Reshape>(
                     avg_conv_1->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {N, 1ull, 8ull, 8 * num_parts})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         std::initializer_list<decltype(N)>{N, 1ull, 8ull, 8 * num_parts})
+                        ->output(0),
                     false);
                 auto transpose_8 =
                     std::make_shared<op::Transpose>(reshape_avg_conv_1->output(0),
@@ -492,7 +535,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                                                     op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
                 auto avg_conv_2_1d = std::make_shared<ngraph::opset1::Reshape>(
                     avg_conv_2,
-                    op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, 8 * W})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{2},
+                                         std::initializer_list<decltype(W)>{1ull, 8 * W})
+                        ->output(0),
                     false);
                 auto log_avg_1d = std::make_shared<op::Log>(avg_conv_2_1d->output(0));
                 auto diff_1 =
@@ -502,19 +548,28 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                 if (softmax_shape.size() == 2) {
                     auto reshape_8 = std::make_shared<ngraph::opset1::Reshape>(
                         softmax_output_1d->output(0),
-                        op::Constant::create(ngraph::element::i64, Shape{2}, {8ull, W})->output(0),
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{2},
+                                             std::initializer_list<decltype(W)>{8ull, W})
+                            ->output(0),
                         false);
                     chunks.push_back(reshape_8->output(0));
                 } else if (softmax_shape.size() == 3) {
                     auto reshape_8 = std::make_shared<ngraph::opset1::Reshape>(
                         softmax_output_1d->output(0),
-                        op::Constant::create(ngraph::element::i64, Shape{3}, {1ull, 8ull, W})->output(0),
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{3},
+                                             std::initializer_list<decltype(W)>{1ull, 8ull, W})
+                            ->output(0),
                         false);
                     chunks.push_back(reshape_8->output(0));
                 } else {
                     auto reshape_8 = std::make_shared<ngraph::opset1::Reshape>(
                         softmax_output_1d->output(0),
-                        op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, 1ull, 8ull, W})->output(0),
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{4},
+                                             std::initializer_list<decltype(W)>{1ull, 1ull, 8ull, W})
+                            ->output(0),
                         false);
                     chunks.push_back(reshape_8->output(0));
                 }
@@ -527,9 +582,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                         ngraph::opset1::Constant::create(ngraph::element::i64,
                                                          ngraph::Shape{2},
                                                          {0ull, 0ull}),  // begin slice index
-                        ngraph::opset1::Constant::create(ngraph::element::i64,
-                                                         ngraph::Shape{2},
-                                                         {8 - (H_new - H), 0ull}),  // end slice index
+                        ngraph::opset1::Constant::create(
+                            ngraph::element::i64,
+                            ngraph::Shape{2},
+                            std::initializer_list<decltype(H)>{8 - (H_new - H), 0ull}),  // end slice index
                         ngraph::opset1::Constant::create(ngraph::element::i64,
                                                          ngraph::Shape{2},
                                                          {1ull, 1ull}),  // strides
@@ -545,9 +601,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                         ngraph::opset1::Constant::create(ngraph::element::i64,
                                                          ngraph::Shape{3},
                                                          {0ull, 0ull, 0ull}),  // begin slice index
-                        ngraph::opset1::Constant::create(ngraph::element::i64,
-                                                         ngraph::Shape{3},
-                                                         {0ull, 8 - (H_new - H), 0ull}),  // end slice index
+                        ngraph::opset1::Constant::create(
+                            ngraph::element::i64,
+                            ngraph::Shape{3},
+                            std::initializer_list<decltype(H)>{0ull, 8 - (H_new - H), 0ull}),  // end slice index
                         ngraph::opset1::Constant::create(ngraph::element::i64,
                                                          ngraph::Shape{3},
                                                          {1ull, 1ull, 1ull}),  // strides
@@ -563,9 +620,10 @@ bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::
                         ngraph::opset1::Constant::create(ngraph::element::i64,
                                                          ngraph::Shape{4},
                                                          {0ull, 0ull, 0ull, 0ull}),  // begin slice index
-                        ngraph::opset1::Constant::create(ngraph::element::i64,
-                                                         ngraph::Shape{4},
-                                                         {0ull, 0ull, 8 - (H_new - H), 0ull}),  // end slice index
+                        ngraph::opset1::Constant::create(
+                            ngraph::element::i64,
+                            ngraph::Shape{4},
+                            std::initializer_list<decltype(H)>{0ull, 0ull, 8 - (H_new - H), 0ull}),  // end slice index
                         ngraph::opset1::Constant::create(ngraph::element::i64,
                                                          ngraph::Shape{4},
                                                          {1ull, 1ull, 1ull, 1ull}),  // strides

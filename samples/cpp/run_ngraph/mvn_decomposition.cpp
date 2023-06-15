@@ -143,12 +143,17 @@ bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Mode
             // Assumes C=1 case
             auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
                 upstream[0],
-                op::Constant::create(ngraph::element::i64, Shape{4}, {N, H_new * num_parts, 1ull, W_new / num_parts})
+                op::Constant::create(ngraph::element::i64,
+                                     Shape{4},
+                                     std::initializer_list<decltype(H)>{N, H_new * num_parts, 1ull, W_new / num_parts})
                     ->output(0),
                 false);
             auto input_2d = std::make_shared<ngraph::opset1::Reshape>(
                 upstream[0],
-                op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, H_new * W_new})->output(0),
+                op::Constant::create(ngraph::element::i64,
+                                     Shape{2},
+                                     std::initializer_list<decltype(H_new)>{1ull, H_new * W_new})
+                    ->output(0),
                 false);
             auto transposed_input_1 =
                 std::make_shared<op::Transpose>(input_4d->output(0),
@@ -166,7 +171,10 @@ bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Mode
                                                 op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
             auto reshape_avg_conv_1 = std::make_shared<ngraph::opset1::Reshape>(
                 avg_conv_1->output(0),
-                op::Constant::create(ngraph::element::i64, Shape{4}, {N, 1ull, H_new, 8 * num_parts})->output(0),
+                op::Constant::create(ngraph::element::i64,
+                                     Shape{4},
+                                     std::initializer_list<decltype(N)>{N, 1ull, H_new, 8 * num_parts})
+                    ->output(0),
                 false);
             auto transposed_input_2 =
                 std::make_shared<op::Transpose>(reshape_avg_conv_1->output(0),
@@ -184,7 +192,10 @@ bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Mode
                                                 op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
             auto avg_conv_2_2d = std::make_shared<ngraph::opset1::Reshape>(
                 avg_conv_2,
-                op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, H_new * W_new})->output(0),
+                op::Constant::create(ngraph::element::i64,
+                                     Shape{2},
+                                     std::initializer_list<decltype(H_new)>{1ull, H_new * W_new})
+                    ->output(0),
                 false);
             auto subtract_mean = std::make_shared<op::v1::Add>(input_2d->output(0), avg_conv_2_2d->output(0));
             subtract_mean->set_friendly_name("MvnSubMean");
@@ -194,9 +205,10 @@ bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Mode
                 squared_diff->set_friendly_name("MvnSqrDiff");
                 auto squared_diff_reshape = std::make_shared<ngraph::opset1::Reshape>(
                     squared_diff->output(0),
-                    op::Constant::create(ngraph::element::i64,
-                                         Shape{4},
-                                         {N, H_new * num_parts, 1ull, W_new / num_parts})
+                    op::Constant::create(
+                        ngraph::element::i64,
+                        Shape{4},
+                        std::initializer_list<decltype(N)>{N, H_new * num_parts, 1ull, W_new / num_parts})
                         ->output(0),
                     false);
                 auto transposed_input_3 =
@@ -215,7 +227,10 @@ bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Mode
                                                     op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
                 auto reshape_avg_conv_3 = std::make_shared<ngraph::opset1::Reshape>(
                     avg_conv_3->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {N, 1ull, H_new, 8 * num_parts})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         std::initializer_list<decltype(N)>{N, 1ull, H_new, 8 * num_parts})
+                        ->output(0),
                     false);
                 auto transposed_input_4 =
                     std::make_shared<op::Transpose>(reshape_avg_conv_3->output(0),
@@ -233,7 +248,10 @@ bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Mode
                                                     op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
                 auto reshape_avg_conv_4 = std::make_shared<ngraph::opset1::Reshape>(
                     avg_conv_4->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, H_new * W_new})->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{2},
+                                         std::initializer_list<decltype(H_new)>{1ull, H_new * W_new})
+                        ->output(0),
                     false);
                 OutputVector avg;
                 avg.push_back(reshape_avg_conv_4->output(0));
