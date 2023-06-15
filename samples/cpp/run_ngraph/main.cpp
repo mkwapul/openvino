@@ -30,7 +30,6 @@
 #include <vector>
 
 #include "convert_dwsc_to_scaleshifts.hpp"
-#include "dolby_fragment.hpp"
 #include "groupconv1d_decomposition.hpp"
 #include "groupconv_decomposition.hpp"
 #include "ie_core.hpp"
@@ -40,6 +39,7 @@
 #include "ngraph/opsets/opset1.hpp"
 #include "ngraph/opsets/opset2.hpp"
 #include "ngraph/opsets/opset3.hpp"
+#include "ngraph/pass/serialize.hpp"
 #include "openvino/openvino.hpp"
 #include "softmax_decomposition.hpp"
 #include "to_mvn.hpp"
@@ -48,8 +48,9 @@
 #include "transconv_nchw_decomposition.hpp"
 #include "transformations/common_optimizations/common_optimizations.hpp"
 #include "transformations/op_conversions/lstm_cell_decomposition.hpp"
-#include "transformations/serialize.hpp"
 #include "transpose_decomposition.hpp"
+//#include "dolby_fragment.hpp"
+#include "transformations/op_conversions/lstm_cell_decomposition.hpp"
 
 std::list<std::string> passes({"mvn",
                                "softmax",
@@ -88,7 +89,7 @@ void RegisterPass(ngraph::pass::Manager& manager, std::string name) {
     } else if (name == "dwsc") {
         manager.register_pass<ov::intel_gna::pass::ConvertDWSCToScaleShifts>();
     } else if (name == "lstmcell") {
-        manager.register_pass<ngraph::pass::LSTMCellDecomposition>();
+        manager.register_pass<ov::pass::LSTMCellDecomposition>();
     } else if (name == "to_mvn") {
         manager.register_pass<ngraph::pass::ToMvn>();
     } else if (name == "to_nhwc") {

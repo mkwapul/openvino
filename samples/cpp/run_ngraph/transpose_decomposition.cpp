@@ -77,11 +77,11 @@ std::vector<size_t> CombineFactors(std::vector<size_t> factors) {
     return (combined_factors);
 }
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::TransposeDecomposition, "TransposeDecomposition", 0);
-bool ngraph::pass::TransposeDecomposition::run_on_function(std::shared_ptr<ngraph::Function> f) {
+NGRAPH_RTTI_DEFINITION(ngraph::pass::TransposeDecomposition, "TransposeDecomposition");
+bool ngraph::pass::TransposeDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : f->get_ordered_ops()) {
+    for (auto& node : m->get_ordered_ops()) {
         auto transpose = std::dynamic_pointer_cast<Transpose>(node);
         if (nullptr == transpose) {
             continue;

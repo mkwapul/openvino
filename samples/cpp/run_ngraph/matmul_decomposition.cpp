@@ -30,11 +30,11 @@
 using namespace ngraph;
 using namespace op;
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::MatMulDecomposition, "MatMulDecomposition", 0);
-bool ngraph::pass::MatMulDecomposition::run_on_function(std::shared_ptr<ngraph::Function> f) {
+NGRAPH_RTTI_DEFINITION(ngraph::pass::MatMulDecomposition, "MatMulDecomposition");
+bool ngraph::pass::MatMulDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : f->get_ordered_ops()) {
+    for (auto& node : m->get_ordered_ops()) {
         auto matmul = std::dynamic_pointer_cast<MatMul>(node);
         if (nullptr == matmul) {
             continue;

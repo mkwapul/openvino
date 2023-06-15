@@ -30,11 +30,11 @@
 using namespace ngraph;
 using namespace op;
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::MvnDecomposition, "MvnDecomposition", 0);
-bool ngraph::pass::MvnDecomposition::run_on_function(std::shared_ptr<ngraph::Function> f) {
+NGRAPH_RTTI_DEFINITION(ngraph::pass::MvnDecomposition, "MvnDecomposition");
+bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : f->get_ordered_ops()) {
+    for (auto& node : m->get_ordered_ops()) {
         auto mvn = std::dynamic_pointer_cast<MVN>(node);
         auto mvn_v6 = std::dynamic_pointer_cast<op::v6::MVN>(node);
         if ((nullptr == mvn) && (nullptr == mvn_v6)) {

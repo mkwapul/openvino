@@ -30,11 +30,11 @@
 using namespace ngraph;
 using namespace op;
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::GroupConvolution1dDecomposition, "GroupConvolution1dDecomposition", 0);
-bool ngraph::pass::GroupConvolution1dDecomposition::run_on_function(std::shared_ptr<ngraph::Function> f) {
+NGRAPH_RTTI_DEFINITION(ngraph::pass::GroupConvolution1dDecomposition, "GroupConvolution1dDecomposition");
+bool ngraph::pass::GroupConvolution1dDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : f->get_ordered_ops()) {
+    for (auto& node : m->get_ordered_ops()) {
         auto conv = std::dynamic_pointer_cast<ngraph::opset1::GroupConvolution>(node);
         if (nullptr == conv) {
             continue;

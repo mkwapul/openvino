@@ -30,11 +30,11 @@
 using namespace ngraph;
 using namespace op;
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::SoftmaxDecomposition, "SoftmaxDecomposition", 0);
-bool ngraph::pass::SoftmaxDecomposition::run_on_function(std::shared_ptr<ngraph::Function> f) {
+NGRAPH_RTTI_DEFINITION(ngraph::pass::SoftmaxDecomposition, "SoftmaxDecomposition");
+bool ngraph::pass::SoftmaxDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : f->get_ordered_ops()) {
+    for (auto& node : m->get_ordered_ops()) {
         auto softmax_v1 = std::dynamic_pointer_cast<v1::Softmax>(node);
         auto softmax_v8 = std::dynamic_pointer_cast<v8::Softmax>(node);
         if ((nullptr == softmax_v1) && (nullptr == softmax_v8)) {

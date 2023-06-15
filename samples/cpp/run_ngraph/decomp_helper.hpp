@@ -24,7 +24,6 @@
 #pragma once
 
 #include <transformations_visibility.hpp>
-
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset1.hpp"
 #include "ngraph/opsets/opset2.hpp"
