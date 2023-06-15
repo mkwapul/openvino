@@ -46,7 +46,7 @@ bool ngraph::pass::MvnDecomposition::run_on_model(const std::shared_ptr<ov::Mode
         bool across_channels = (nullptr != mvn) ? mvn->get_across_channels() : false;
         bool normalize_variance = (nullptr != mvn) ? mvn->get_normalize_variance() : mvn_v6->get_normalize_variance();
         double eps = (nullptr != mvn) ? mvn->get_eps() : mvn_v6->get_eps();
-        ov::AxisSet reduction_axes_v1 = (nullptr != mvn) ? mvn->get_reduction_axes() : ov::AxisSet::AxisSet();
+        ov::AxisSet reduction_axes_v1 = (nullptr != mvn) ? mvn->get_reduction_axes() : ov::AxisSet();
         ov::Output<ov::Node> reduction_axes_v6 = (nullptr != mvn_v6) ? mvn_v6->input_value(1) : ov::Output<ov::Node>();
         auto axis_const_data_v6 =
             (nullptr != mvn_v6)
