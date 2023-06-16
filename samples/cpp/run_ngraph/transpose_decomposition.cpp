@@ -257,6 +257,8 @@ bool ngraph::pass::TransposeDecomposition::run_on_model(const std::shared_ptr<ov
                        (order[input_shape.size() - 1] == input_shape.size() - 2)) {
                 if ((input_shape.size() == 4) && (order[1] != 1)) {
                     continue;  // not supported
+                } else if ((H % 8 != 0) || (W % 8 != 0)) {
+                    continue;  // non-multiple-of-8 parts not yet handled properly
                 }
                 // 2D transpose case
                 OutputVector chunks;
