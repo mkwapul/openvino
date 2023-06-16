@@ -112,20 +112,29 @@ std::shared_ptr<Function> createNgraphFunctionCustomer(std::vector<std::string> 
             auto pads_end = CoordinateDiff{(int64_t)dims[i][12], (int64_t)dims[i][13]};
             auto dilations = Strides{dims[i][14], dims[i][15]};
             auto auto_pad = PadType::EXPLICIT;
-            if (upstream[0].get_shape() != Shape{N, H, W, C}) {
-                auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
-                    upstream[0],
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {N, H, W, C})->output(0),
-                    false);
-                setNodeNames(input_4d, "Reshape4D");
-                upstream[0] = input_4d->output(0);
-            }
             if (ops[i] == "Convolution") {
+                if (upstream[0].get_shape() != Shape{N, H, W, C}) {
+                    auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
+                        upstream[0],
+                        op::Constant::create(ngraph::element::i64, Shape{4}, {N, H, W, C})->output(0),
+                        false);
+                    setNodeNames(input_4d, "Reshape4D");
+                    upstream[0] = input_4d->output(0);
+                }
                 auto new_transpose =
                     std::make_shared<op::Transpose>(upstream[0],
                                                     op::Constant::create(element::Type_t::i64, Shape{4}, {0, 3, 1, 2}));
                 setNodeNames(new_transpose, "Transpose");
                 upstream[0] = new_transpose->output(0);
+            } else {
+                if (upstream[0].get_shape() != Shape{N, C, H, W}) {
+                    auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
+                        upstream[0],
+                        op::Constant::create(ngraph::element::i64, Shape{4}, {N, C, H, W})->output(0),
+                        false);
+                    setNodeNames(input_4d, "Reshape4D");
+                    upstream[0] = input_4d->output(0);
+                }
             }
             std::vector<float> new_weights(Cout * Cin * Kh * Kw, 0.0f);
             fillRandom(new_weights);
@@ -175,20 +184,29 @@ std::shared_ptr<Function> createNgraphFunctionCustomer(std::vector<std::string> 
             uint32_t out_pad_h = (H + pads_begin[0] + pads_end[0] - Kh) % strides[0];
             uint32_t out_pad_w = (W + pads_begin[1] + pads_end[1] - Kw) % strides[1];
             auto output_padding = CoordinateDiff{out_pad_h, out_pad_w};
-            if (upstream[0].get_shape() != Shape{N, H, W, C}) {
-                auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
-                    upstream[0],
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {N, H, W, C})->output(0),
-                    false);
-                setNodeNames(input_4d, "Reshape4D");
-                upstream[0] = input_4d->output(0);
-            }
             if (ops[i] == "ConvolutionBackpropData") {
+                if (upstream[0].get_shape() != Shape{N, H, W, C}) {
+                    auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
+                        upstream[0],
+                        op::Constant::create(ngraph::element::i64, Shape{4}, {N, H, W, C})->output(0),
+                        false);
+                    setNodeNames(input_4d, "Reshape4D");
+                    upstream[0] = input_4d->output(0);
+                }
                 auto new_transpose =
                     std::make_shared<op::Transpose>(upstream[0],
                                                     op::Constant::create(element::Type_t::i64, Shape{4}, {0, 3, 1, 2}));
                 setNodeNames(new_transpose, "Transpose");
                 upstream[0] = new_transpose->output(0);
+            } else {
+                if (upstream[0].get_shape() != Shape{N, C, H, W}) {
+                    auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
+                        upstream[0],
+                        op::Constant::create(ngraph::element::i64, Shape{4}, {N, C, H, W})->output(0),
+                        false);
+                    setNodeNames(input_4d, "Reshape4D");
+                    upstream[0] = input_4d->output(0);
+                }
             }
             std::vector<float> new_weights(Cout * Cin * Kh * Kw, 0.0f);
             fillRandom(new_weights);
@@ -426,6 +444,7 @@ std::shared_ptr<Function> createNgraphFunctionCustomer(std::vector<std::string> 
             size_t H = dims[i][1];
             size_t W = dims[i][2];
             size_t C = dims[i][3];
+            auto across_channels = false;
             auto normalize_variance = true;
             float epsilon = 1e-5f;
             op::MVNEpsMode eps_mode = op::MVNEpsMode::INSIDE_SQRT;
@@ -543,7 +562,9 @@ std::shared_ptr<Function> createNgraphFunctionCustomer(std::vector<std::string> 
     }
     auto output_2d = std::make_shared<ngraph::opset1::Reshape>(
         upstream[0],
-        op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, static_cast<unsigned long long>(num_elements)})
+        op::Constant::create(ngraph::element::i64,
+                             Shape{2},
+                             std::initializer_list<decltype(num_elements)>{1ull, num_elements})
             ->output(0),
         false);
     setNodeNames(output_2d, "Reshape2D");
@@ -604,6 +625,7 @@ int main(int argc, char* argv[]) {
 
     ngraph::pass::Manager manager;
     manager.register_pass<ngraph::pass::Serialize>(xml_name, bin_name, ngraph::pass::Serialize::Version::IR_V11);
+    const auto& pass_config = manager.get_pass_config();
     manager.run_passes(createNgraphFunctionCustomer(operators, dimensions));
 
     return 0;
