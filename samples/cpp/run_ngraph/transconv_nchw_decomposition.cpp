@@ -170,13 +170,13 @@ void BuildKernelMap1D2(size_t dim_new,
     {
         size_t output_index = 0;
         for (size_t i = 0; i < input_list.size(); i++) {
-            printf("position %zu:\nx%d .. x%d\n", output_index, input_list[i][0], input_list[i][1]);
+            printf("position %llu:\nx%d .. x%d\n", output_index, input_list[i][0], input_list[i][1]);
             for (uint32_t m = 0; m < kernel_list[i].size(); m++) {
                 for (uint32_t n = 0; n < kernel_list[i][m].size(); n++) {
                     if (kernel_list[i][m][n] == PAD_VALUE) {
                         printf("00 ");
                     } else {
-                        printf("k%lu ", kernel_list[i][m][n]);
+                        printf("k%llu ", kernel_list[i][m][n]);
                     }
                 }
                 printf("\n");
@@ -199,11 +199,10 @@ void BuildKernelMap1D2(size_t dim_new,
     }
 }
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::TransposeConvolutionNchwDecomposition, "TransposeConvolutionNchwDecomposition");
-bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std::shared_ptr<ngraph::Function>& f) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : m->get_ordered_ops()) {
+    for (auto& node : f->get_ordered_ops()) {
         auto conv = std::dynamic_pointer_cast<ngraph::opset1::ConvolutionBackpropData>(node);
         if (nullptr == conv) {
             continue;
@@ -223,6 +222,8 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
         auto strides = conv->get_strides();
         auto weights_const =
             std::dynamic_pointer_cast<ngraph::opset1::Constant>(conv->input_value(1).get_node_shared_ptr());
+        bool nchw_only = true;  // keep graph NCHW and rely on layout transformation to convert to NHWC for GNA
+        bool layout_nchw = true;
 
         if (weights_shape.size() ==
             4) {  // ConvTranspose2d: 4D input with N=1, 4D filters, 2D stride, 2D dilation, 2D padding
@@ -303,13 +304,13 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                 }
                 reshape_after = std::dynamic_pointer_cast<ngraph::opset1::Reshape>(
                     act_children.begin()->get_node()->shared_from_this());
-            } else {
-                continue;
-            }
+            }  // else {
+            //    continue;
+            //}
         }
-        if (reshape_after == nullptr) {
-            continue;
-        }
+        // if (reshape_after == nullptr) {
+        //    continue;
+        //}
 
         // find padded dimensions of virtual equivalent convolution
 
@@ -383,7 +384,7 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
 
         }
         // ========== 1D cases ===========
-        else if (is_1D || (W_new == input_shape[3])) {  // 1D in H direction case
+        else if (is_1D || (W_new == weights_shape[3])) {  // input_shape[3])) {  // 1D in H direction case
 
             Output<Node> source = parent;
             std::vector<std::vector<std::vector<size_t>>> kernel_list;  // list of kernel layouts
@@ -543,26 +544,39 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
             if (is_1D) {  // if 3D original input tensor then reshape back to 3D
                 auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                     new_concat->output(0),
-                    op::Constant::create(ngraph::element::i64,
-                                         Shape{3},
-                                         std::initializer_list<decltype(N)>{N, weights_shape[1], H_new, 1ull})
-                        ->output(0),
+                    op::Constant::create(ngraph::element::i64, Shape{3}, {N, weights_shape[1], H_new})->output(0),
                     false);
-            }
-            if (reshape_after != nullptr) {
-                ngraph::replace_node(reshape_after, new_concat);
-            } else if (prelu_after) {
-                ngraph::replace_node(prelu_after, new_concat);
-            } else if (relu_after) {
-                ngraph::replace_node(relu_after, new_concat);
-            } else if (sigmoid_after) {
-                ngraph::replace_node(sigmoid_after, new_concat);
-            } else if (tanh_after) {
-                ngraph::replace_node(tanh_after, new_concat);
-            } else if (add_after) {
-                ngraph::replace_node(add_after, new_concat);
+                if (reshape_after != nullptr) {
+                    ngraph::replace_node(reshape_after, new_reshape);
+                } else if (prelu_after) {
+                    ngraph::replace_node(prelu_after, new_reshape);
+                } else if (relu_after) {
+                    ngraph::replace_node(relu_after, new_reshape);
+                } else if (sigmoid_after) {
+                    ngraph::replace_node(sigmoid_after, new_reshape);
+                } else if (tanh_after) {
+                    ngraph::replace_node(tanh_after, new_reshape);
+                } else if (add_after) {
+                    ngraph::replace_node(add_after, new_reshape);
+                } else {
+                    ngraph::replace_node(conv, new_reshape);
+                }
             } else {
-                ngraph::replace_node(conv, new_concat);
+                if (reshape_after != nullptr) {
+                    ngraph::replace_node(reshape_after, new_concat);
+                } else if (prelu_after) {
+                    ngraph::replace_node(prelu_after, new_concat);
+                } else if (relu_after) {
+                    ngraph::replace_node(relu_after, new_concat);
+                } else if (sigmoid_after) {
+                    ngraph::replace_node(sigmoid_after, new_concat);
+                } else if (tanh_after) {
+                    ngraph::replace_node(tanh_after, new_concat);
+                } else if (add_after) {
+                    ngraph::replace_node(add_after, new_concat);
+                } else {
+                    ngraph::replace_node(conv, new_concat);
+                }
             }
 
             is_graph_modfied = true;
@@ -684,10 +698,9 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                         InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
                         auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                             upstream[0],
-                            op::Constant::create(
-                                ngraph::element::i64,
-                                Shape{4},
-                                std::initializer_list<decltype(W_out)>{N, weights_shape[1], 1ull, W_out})
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{4},
+                                                 std::initializer_list<decltype(N)>{N, weights_shape[1], 1ull, W_out})
                                 ->output(0),
                             false);
                         parts.push_back(new_reshape->output(0));
@@ -740,30 +753,45 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                               H_pad_additional,
                               strides[0],
                               weights_shape[2],
-                              false,
+                              true,
                               kernel_list,
                               input_list);
 
             // Insert convolutions
-            OutputVector parts;
+            std::vector<OutputVector> stream;  // split transpose convolution kernel and compute in streams by partial
+                                               // kernel (possibly broken down by channel group)
             for (size_t n = 0; n < input_list.size(); n++) {
-                auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
-                    source,
-                    op::Constant::create(ngraph::element::i64, Shape{3}, {C, H, W})->output(0),
-                    false);
-                size_t H_start = input_list[n][0];
-                size_t H_stop = input_list[n][1] + 1;
-                auto slice_start = op::Constant::create(ngraph::element::i64,
-                                                        Shape{3},
-                                                        std::initializer_list<decltype(H_start)>{0ull, H_start, 0ull});
-                auto slice_stop = op::Constant::create(ngraph::element::i64, Shape{3}, {C, H_stop, W});
-                auto slice_step = op::Constant::create(ngraph::element::i64, Shape{3}, {1ull, 1ull, 1ull});
-                auto new_slice =
-                    std::make_shared<v8::Slice>(new_reshape->output(0), slice_start, slice_stop, slice_step);
-                new_reshape = std::make_shared<ngraph::opset1::Reshape>(
-                    new_slice->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {N, C, H_stop - H_start, W})->output(0),
-                    false);
+                OutputVector upstream;
+                if (nchw_only) {
+                    size_t H_start = input_list[n][0];
+                    size_t H_stop = input_list[n][1] + 1;
+                    auto slice_start =
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{4},
+                                             std::initializer_list<decltype(N)>{0ull, 0ull, H_start, 0ull});
+                    auto slice_stop = op::Constant::create(ngraph::element::i64, Shape{4}, {N, C, H_stop, W});
+                    auto slice_step = op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, 1ull, 1ull, 1ull});
+                    auto new_slice = std::make_shared<v8::Slice>(source, slice_start, slice_stop, slice_step);
+                    upstream.push_back(new_slice->output(0));
+                } else {
+                    auto new_transpose = std::make_shared<op::Transpose>(
+                        source,
+                        op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
+                    size_t H_start = input_list[n][0];
+                    size_t H_stop = input_list[n][1] + 1;
+                    auto slice_start =
+                        op::Constant::create(ngraph::element::i64,
+                                             Shape{4},
+                                             std::initializer_list<decltype(H_start)>{0ull, H_start, 0ull, 0ull});
+                    auto slice_stop = op::Constant::create(ngraph::element::i64, Shape{4}, {N, H_stop, W, C});
+                    auto slice_step = op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, 1ull, 1ull, 1ull});
+                    auto new_slice =
+                        std::make_shared<v8::Slice>(new_transpose->output(0), slice_start, slice_stop, slice_step);
+                    new_transpose = std::make_shared<op::Transpose>(
+                        new_slice->output(0),
+                        op::Constant::create(element::Type_t::i64, Shape{4}, {0, 3, 1, 2}));
+                    upstream.push_back(new_transpose->output(0));
+                }
                 // Extract partial kernels
                 //   The trick here is to artificially increase the output channels to produce more outputs per step
                 //
@@ -778,28 +806,32 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                 float* new_weight_ptr = new_weights.data();
                 size_t i_step = weights_shape[1] * weights_shape[2] * weights_shape[3];
                 size_t j_step = weights_shape[2] * weights_shape[3];
+                size_t k_step = weights_shape[3];
                 bool print_stuff = false;
                 if (print_stuff) {
                     printf("prev weights\n");
                     for (size_t i = 0; i < weights_shape[0]; i++) {
                         for (size_t j = 0; j < weights_shape[1]; j++) {
                             for (size_t k = 0; k < weights_shape[2]; k++) {
-                                for (size_t n = 0; n < K_w; n++) {
-                                    if ((j == 2) && (k == 1)) {
-                                        printf("%e\n", *(weight_ptr + i * i_step + j * j_step + k * K_w + n));
-                                    }
-                                    // printf("%d %d %d %d: %f\n", (int)i, (int)j, (int)k, (int)n, *(weight_ptr + i *
-                                    // i_step + j * j_step + k * K_w + n));
+                                for (size_t n = 0; n < weights_shape[3]; n++) {
+                                    printf("%d %d %d %d: %f\n",
+                                           (int)i,
+                                           (int)j,
+                                           (int)k,
+                                           (int)n,
+                                           *(weight_ptr + i * i_step + j * j_step + k * k_step + n));
                                 }
                             }
                         }
                     }
-                    printf("bias\n");
-                    auto bias_const =
-                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
-                    const float* bias_ptr = bias_const->get_data_ptr<float>();
-                    for (size_t j = 0; j < weights_shape[1]; j++) {
-                        printf("%e\n", *(bias_ptr + j));
+                    if (add_after) {
+                        printf("bias\n");
+                        auto bias_const = std::dynamic_pointer_cast<opset1::Constant>(
+                            add_after->input_value(1).get_node_shared_ptr());
+                        const float* bias_ptr = bias_const->get_data_ptr<float>();
+                        for (size_t j = 0; j < weights_shape[1]; j++) {
+                            printf("%e\n", *(bias_ptr + j));
+                        }
                     }
                     printf("weights\n");
                 }
@@ -814,17 +846,26 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                                 for (size_t n = 0; n < K_w; n++) {
                                     *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + m * K_w + n) = 0;
                                     if (print_stuff) {
-                                        // printf("%d %d %d: %f\n", (int)i, (int)j, (int)m, *(new_weight_ptr + i * C_in
-                                        // * K_h + j * K_h + m));
+                                        printf("%d %d %d %d: %f\n",
+                                               (int)i,
+                                               (int)j,
+                                               (int)m,
+                                               (int)n,
+                                               *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + m * K_w + n));
                                     }
                                 }
                             } else {
                                 for (size_t n = 0; n < K_w; n++) {
-                                    *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + m * K_w + n) = *(
-                                        weight_ptr + i_prev * i_step + j_prev * j_step + k_prev * K_w + (K_w - n - 1));
+                                    *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + m * K_w + n) =
+                                        *(weight_ptr + i_prev * i_step + j_prev * j_step + k_prev * k_step +
+                                          (K_w - n - 1));
                                     if (print_stuff) {
-                                        // printf("%d %d %d: %f\n", (int)i, (int)j, (int)m, *(new_weight_ptr + i * C_in
-                                        // * K_h + j * K_h + m));
+                                        printf("%d %d %d %d: %f\n",
+                                               (int)i,
+                                               (int)j,
+                                               (int)m,
+                                               (int)n,
+                                               *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + m * K_w + n));
                                     }
                                 }
                             }
@@ -837,13 +878,17 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                 ov::Strides new_dilations = {1, 1};
                 auto new_weights_const =
                     op::Constant::create(ngraph::element::f32, Shape{C_out, C_in, K_h, K_w}, new_weights);
-                auto new_conv = std::make_shared<opset1::Convolution>(new_reshape->output(0),
+                auto new_conv = std::make_shared<opset1::Convolution>(upstream[0],
                                                                       new_weights_const->output(0),
                                                                       new_strides,
                                                                       new_pads_begin,
                                                                       new_pads_end,
                                                                       new_dilations,
                                                                       PadType::EXPLICIT);
+                auto conv_shape = new_conv->get_output_shape(0);
+                auto H_out = conv_shape[1] * conv_shape[2] / weights_shape[1];
+                auto W_out = conv_shape[3];
+                upstream[0] = new_conv->output(0);
                 if (add_after != nullptr) {  // need to repeat bias vector to match new convolution
                     auto bias_const =
                         std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
@@ -858,78 +903,537 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                         auto new_bias_const =
                             op::Constant::create(ngraph::element::f32, Shape{1ull, C_out, 1ull, 1ull}, new_bias);
                         auto new_add = std::make_shared<opset1::Add>(new_conv->output(0), new_bias_const->output(0));
-                        auto add_shape = new_add->get_output_shape(0);
-                        auto H_out = add_shape[1] * add_shape[2] / weights_shape[1];
-                        auto W_out = add_shape[3];
-                        OutputVector upstream;
-                        upstream.push_back(new_add->output(0));
-                        InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
-                        auto output_shape = upstream[0].get_shape();
-                        if (output_shape[3] == weights_shape[1]) {
-                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
-                                upstream[0],
-                                op::Constant::create(ngraph::element::i64,
-                                                     Shape{4},
-                                                     {N, weights_shape[1], H_out, W_out})
-                                    ->output(0),
-                                false);
-                            upstream[0] = new_reshape->output(0);
-                        } else {
-                            auto tmp_H = output_shape[0] * output_shape[1] * output_shape[2] * output_shape[3] /
-                                         weights_shape[1];
-                            auto tmp_W = weights_shape[1];
-                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
-                                upstream[0],
-                                op::Constant::create(ngraph::element::i64, Shape{2}, {tmp_H, tmp_W})->output(0),
-                                false);
-                            auto new_transpose = std::make_shared<op::Transpose>(
-                                new_reshape->output(0),
-                                op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
-                            new_reshape = std::make_shared<ngraph::opset1::Reshape>(
-                                new_transpose->output(0),
-                                op::Constant::create(ngraph::element::i64,
-                                                     Shape{4},
-                                                     {N, weights_shape[1], H_out, W_out})
-                                    ->output(0),
-                                false);
-                            upstream[0] = new_reshape->output(0);
-                        }
-                        parts.push_back(upstream[0]);
+                        upstream[0] = new_add->output(0);
                     }
-                } else {
-                    auto conv_shape = new_conv->get_output_shape(0);
-                    auto H_out = conv_shape[1] * conv_shape[2] / weights_shape[1];
-                    auto W_out = conv_shape[3];
-                    OutputVector upstream;
-                    upstream.push_back(new_conv->output(0));
-                    InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
-                    auto output_shape = upstream[0].get_shape();
-                    if (output_shape[3] == weights_shape[1]) {
+                }
+                InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                OutputVector tmp;
+                stream.push_back(tmp);
+                if (conv_shape[1] == weights_shape[1]) {
+                    // to avoid big transposes later, split channels and process in groups of 8
+                    auto num_splits = conv_shape[1] / 8;
+                    if ((num_splits > 1) &&
+                        (num_splits * 8 == conv_shape[1])) {  // TO DO:  extend this for non-multiples-of-8
                         auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                             upstream[0],
-                            op::Constant::create(ngraph::element::i64, Shape{4}, {N, weights_shape[1], H_out, W_out})
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{2},
+                                                 {conv_shape[0] * conv_shape[1], conv_shape[2] * conv_shape[3]})
                                 ->output(0),
                             false);
-                        parts.push_back(new_reshape->output(0));
-                    } else {
-                        // printf("Warning 2D unwrapping method is not yet tested.  This network may be incorrect.\n");
-                        auto tmp_H = output_shape[0] * output_shape[1];
-                        auto tmp_W = output_shape[2] * output_shape[3];
-                        auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
-                            upstream[0],
-                            op::Constant::create(ngraph::element::i64, Shape{2}, {tmp_H, tmp_W})->output(0),
-                            false);
-                        auto num_splits = (output_shape[0] * output_shape[1]) / weights_shape[1];
                         auto new_split = std::make_shared<ngraph::opset1::Split>(
                             new_reshape->output(0),
                             ngraph::opset1::Constant::create(element::i64, Shape{}, {0}),
                             num_splits);
-                        for (uint32_t i = 0; i < num_splits; i++) {
-                            new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                        new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                            new_split->output(0),
+                            op::Constant::create(
+                                ngraph::element::i64,
+                                Shape{4},
+                                {conv_shape[0], conv_shape[1] / num_splits, conv_shape[2], conv_shape[3]})
+                                ->output(0),
+                            false);
+                        stream[n].push_back(new_reshape->output(0));
+                        for (size_t i = 1; i < num_splits; i++) {
+                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                                new_split->output(i),
+                                op::Constant::create(
+                                    ngraph::element::i64,
+                                    Shape{4},
+                                    {conv_shape[0], conv_shape[1] / num_splits, conv_shape[2], conv_shape[3]})
+                                    ->output(0),
+                                false);
+                            stream[n].push_back(new_reshape->output(0));
+                        }
+                    } else {
+                        stream[n].push_back(upstream[0]);
+                    }
+
+                } else {
+                    size_t pad0 = 0;
+                    if (!nchw_only) {
+                        auto new_transpose = std::make_shared<op::Transpose>(
+                            upstream[0],
+                            op::Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
+                        layout_nchw = false;
+                        auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                            new_transpose->output(0),
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{2},
+                                                 {conv_shape[0] * conv_shape[2] * conv_shape[3], conv_shape[1]})
+                                ->output(0),
+                            false);
+                        upstream[0] = new_reshape->output(0);
+                        auto new_shape = new_reshape->get_output_shape(0);
+                        pad0 = ((new_shape[0] % 8) == 0) ? 0 : 8 - (new_shape[0] % 8);
+                        if ((new_shape[0] <= 8) && ((new_shape[1] % 8) == 0)) {
+                            pad0 = 0;  // skip padding if transpose is legal in second dimension
+                        }
+                        if (pad0 > 0) {
+                            std::vector<float> padding(pad0 * new_shape[1], 0.0f);
+                            auto padding_const =
+                                op::Constant::create(ngraph::element::f32, {pad0, new_shape[1]}, padding);
+                            upstream.push_back(padding_const->output(0));
+                            auto new_concat = std::make_shared<ngraph::opset1::Concat>(upstream, 0);
+                            upstream.resize(1);
+                            upstream[0] = new_concat->output(0);
+                        }
+                        new_transpose = std::make_shared<op::Transpose>(
+                            upstream[0],
+                            op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+                        stream[n].push_back(new_transpose->output(0));
+                    } else {
+                        auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                            upstream[0],
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{2},
+                                                 {conv_shape[0] * conv_shape[1], conv_shape[2] * conv_shape[3]})
+                                ->output(0),
+                            false);
+                        stream[n].push_back(new_reshape->output(0));
+                    }
+
+                    auto new_split = std::make_shared<ngraph::opset1::Split>(
+                        stream[n][0],
+                        ngraph::opset1::Constant::create(element::i64, Shape{}, {0}),
+                        conv_shape[1]);
+                    std::vector<OutputVector> substream(weights_shape[1]);
+                    if (conv_shape[2] > 1) {
+                        for (size_t i = 0; i < conv_shape[1]; i++) {
+                            upstream[0] = new_split->output(i);
+                            if (pad0 > 0) {
+                                auto slice_start = op::Constant::create(ngraph::element::i64, Shape{2}, {0ull, 0ull});
+                                auto slice_stop = op::Constant::create(
+                                    ngraph::element::i64,
+                                    Shape{2},
+                                    std::initializer_list<unsigned long long>{1ull, conv_shape[2] * conv_shape[3]});
+                                auto slice_step = op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, 1ull});
+                                auto new_slice =
+                                    std::make_shared<v8::Slice>(upstream[0], slice_start, slice_stop, slice_step);
+                                upstream[0] = new_slice->output(0);
+                            }
+                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                                upstream[0],
+                                op::Constant::create(
+                                    ngraph::element::i64,
+                                    Shape{2},
+                                    std::initializer_list<unsigned long long>{conv_shape[2], conv_shape[3]})
+                                    ->output(0),
+                                false);
+                            upstream[0] = new_reshape->output(0);
+                            auto new_shape = new_reshape->get_output_shape(0);
+                            pad0 = ((new_shape[0] % 8) == 0) ? 0 : 8 - (new_shape[0] % 8);
+                            if (pad0 > 0) {
+                                std::vector<float> padding(pad0 * new_shape[1], 0.0f);
+                                auto padding_const =
+                                    op::Constant::create(ngraph::element::f32, {pad0, new_shape[1]}, padding);
+                                upstream.push_back(padding_const->output(0));
+                                auto new_concat = std::make_shared<ngraph::opset1::Concat>(upstream, 0);
+                                upstream.resize(1);
+                                upstream[0] = new_concat->output(0);
+                            }
+                            auto new_transpose = std::make_shared<op::Transpose>(
+                                upstream[0],
+                                op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+                            auto k = i % weights_shape[1];
+                            substream[k].push_back(new_transpose->output(0));
+                        }
+                        upstream.resize(0);
+                        for (size_t i = 0; i < weights_shape[1]; i++) {
+                            auto new_concat = std::make_shared<ngraph::opset1::Concat>(substream[i], 0);
+                            auto new_transpose = std::make_shared<op::Transpose>(
+                                new_concat->output(0),
+                                op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+                            auto new_shape = new_transpose->get_output_shape(0);
+                            OutputVector prev;
+                            prev.push_back(new_transpose->output(0));
+                            if (pad0 > 0) {
+                                auto slice_start = op::Constant::create(ngraph::element::i64, Shape{2}, {0ull, 0ull});
+                                auto slice_stop = op::Constant::create(ngraph::element::i64,
+                                                                       Shape{2},
+                                                                       {new_shape[0] - pad0, new_shape[1]});
+                                auto slice_step = op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, 1ull});
+                                auto new_slice =
+                                    std::make_shared<v8::Slice>(prev[0], slice_start, slice_stop, slice_step);
+                                prev[0] = new_slice->output(0);
+                            }
+                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                                prev[0],
+                                op::Constant::create(ngraph::element::i64,
+                                                     Shape{2},
+                                                     {conv_shape[1] * conv_shape[2] / weights_shape[1], conv_shape[3]})
+                                    ->output(0),
+                                false);
+                            upstream.push_back(new_reshape->output(0));
+                        }
+                    } else {
+                        for (size_t i = 0; i < conv_shape[1]; i++) {
+                            upstream[0] = new_split->output(i);
+                            auto new_shape = new_split->get_output_shape(i);
+                            if (pad0 > 0) {
+                                auto slice_start = op::Constant::create(ngraph::element::i64, Shape{2}, {0ull, 0ull});
+                                auto slice_stop = op::Constant::create(ngraph::element::i64,
+                                                                       Shape{2},
+                                                                       {new_shape[0], new_shape[1] - pad0});
+                                auto slice_step = op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, 1ull});
+                                auto new_slice =
+                                    std::make_shared<v8::Slice>(upstream[0], slice_start, slice_stop, slice_step);
+                                upstream[0] = new_slice->output(0);
+                            }
+                            auto k = i % weights_shape[1];
+                            substream[k].push_back(upstream[0]);
+                        }
+                        upstream.resize(0);
+                        for (size_t i = 0; i < weights_shape[1]; i++) {
+                            for (size_t j = 0; j < substream[i].size(); j++) {
+                                upstream.push_back(substream[i][j]);
+                            }
+                        }
+                    }
+                    auto new_concat = std::make_shared<ngraph::opset1::Concat>(upstream, 0);
+
+                    // to avoid big transposes later, split channels and process in groups of 8
+                    auto num_splits = weights_shape[1] / 8;
+                    if ((num_splits > 1) &&
+                        (num_splits * 8 == weights_shape[1])) {  // TO DO:  extend this for non-multiples-of-8
+                        auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                            new_concat->output(0),
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{2},
+                                                 {conv_shape[0] * weights_shape[1], H_out * W_out})
+                                ->output(0),
+                            false);
+                        auto new_split = std::make_shared<ngraph::opset1::Split>(
+                            new_reshape->output(0),
+                            ngraph::opset1::Constant::create(element::i64, Shape{}, {0}),
+                            num_splits);
+                        new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                            new_split->output(0),
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{4},
+                                                 {conv_shape[0], weights_shape[1] / num_splits, H_out, W_out})
+                                ->output(0),
+                            false);
+                        stream[n][0] = new_reshape->output(0);
+                        for (size_t i = 1; i < num_splits; i++) {
+                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                                 new_split->output(i),
                                 op::Constant::create(ngraph::element::i64,
                                                      Shape{4},
-                                                     {N, weights_shape[1], H_out / num_splits, W_out})
+                                                     {conv_shape[0], weights_shape[1] / num_splits, H_out, W_out})
+                                    ->output(0),
+                                false);
+                            stream[n].push_back(new_reshape->output(0));
+                        }
+                    } else {
+                        auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                            new_concat->output(0),
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{4},
+                                                 {conv_shape[0], weights_shape[1], H_out, W_out})
+                                ->output(0),
+                            false);
+                        stream[n][0] = new_reshape->output(0);
+                    }
+                }
+            }
+            // recombine channels if necessary
+
+            OutputVector subchannels;
+            for (size_t j = 0; j < stream[0].size(); j++) {
+                OutputVector tmp;
+                for (size_t i = 0; i < stream.size(); i++) {
+                    tmp.push_back(stream[i][j]);
+                }
+                auto new_concat = std::make_shared<ngraph::opset1::Concat>(tmp, 2);
+                subchannels.push_back(new_concat->output(0));
+            }
+            auto new_concat = std::make_shared<ngraph::opset1::Concat>(subchannels, 1);
+            auto concat_shape = new_concat->get_output_shape(0);
+            if (nchw_only) {
+                if (reshape_after != nullptr) {
+                    ngraph::replace_node(reshape_after, new_concat);
+                } else if (prelu_after) {
+                    ngraph::replace_node(prelu_after, new_concat);
+                } else if (relu_after) {
+                    ngraph::replace_node(relu_after, new_concat);
+                } else if (sigmoid_after) {
+                    ngraph::replace_node(sigmoid_after, new_concat);
+                } else if (tanh_after) {
+                    ngraph::replace_node(tanh_after, new_concat);
+                } else if (add_after) {
+                    ngraph::replace_node(add_after, new_concat);
+                } else {
+                    ngraph::replace_node(conv, new_concat);
+                }
+            } else {
+                auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                    new_concat->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{2},
+                                         {concat_shape[1], concat_shape[0] * concat_shape[2] * concat_shape[3]})
+                        ->output(0),
+                    false);
+                auto new_transpose =
+                    std::make_shared<op::Transpose>(new_reshape->output(0),
+                                                    op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+                new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                    new_transpose->output(0),
+                    op::Constant::create(ngraph::element::i64,
+                                         Shape{4},
+                                         {concat_shape[0], concat_shape[2], concat_shape[3], concat_shape[1]})
+                        ->output(0),
+                    false);
+                new_transpose =
+                    std::make_shared<op::Transpose>(new_reshape->output(0),
+                                                    op::Constant::create(element::Type_t::i64, Shape{4}, {0, 3, 1, 2}));
+                if (reshape_after != nullptr) {
+                    ngraph::replace_node(reshape_after, new_transpose);
+                } else if (prelu_after) {
+                    ngraph::replace_node(prelu_after, new_transpose);
+                } else if (relu_after) {
+                    ngraph::replace_node(relu_after, new_transpose);
+                } else if (sigmoid_after) {
+                    ngraph::replace_node(sigmoid_after, new_transpose);
+                } else if (tanh_after) {
+                    ngraph::replace_node(tanh_after, new_transpose);
+                } else if (add_after) {
+                    ngraph::replace_node(add_after, new_transpose);
+                } else {
+                    ngraph::replace_node(conv, new_transpose);
+                }
+            }
+
+            is_graph_modfied = true;
+        }
+        // ========== 2D stride (1,S) cases ===========
+        else if (strides[0] == 1) {  // zero insertion in W direction only
+
+            Output<Node> source = parent;
+            std::vector<std::vector<std::vector<size_t>>> kernel_list;  // list of kernel layouts
+            std::vector<std::vector<int32_t>> input_list;               // list of input endpoints
+
+            BuildKernelMap1D2(W_new,
+                              W_pad_outer,
+                              W_pad_additional,
+                              strides[1],
+                              weights_shape[3],
+                              true,
+                              kernel_list,
+                              input_list);
+
+            // Insert convolutions
+            OutputVector parts;
+            for (size_t n = 0; n < input_list.size(); n++) {
+                OutputVector upstream;
+                auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                    source,
+                    op::Constant::create(ngraph::element::i64, Shape{3}, {C, H, W})->output(0),
+                    false);
+                size_t W_start = input_list[n][0];
+                size_t W_stop = input_list[n][1] + 1;
+                auto slice_start = op::Constant::create(ngraph::element::i64,
+                                                        Shape{3},
+                                                        std::initializer_list<decltype(W_start)>{0ull, 0ull, W_start});
+                auto slice_stop = op::Constant::create(ngraph::element::i64, Shape{3}, {C, H, W_stop});
+                auto slice_step = op::Constant::create(ngraph::element::i64, Shape{3}, {1ull, 1ull, 1ull});
+                auto new_slice =
+                    std::make_shared<v8::Slice>(new_reshape->output(0), slice_start, slice_stop, slice_step);
+                new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                    new_slice->output(0),
+                    op::Constant::create(ngraph::element::i64, Shape{4}, {N, C, H, W_stop - W_start})->output(0),
+                    false);
+                // Extract partial kernels
+                //   The trick here is to artificially increase the output channels to produce more outputs per step
+                //
+                size_t C_out = kernel_list[n].size() *
+                               weights_shape[1];  // increase output channels (for TransConv 0 dim is input)
+                size_t C_in = C;                  // preserve input channels
+                size_t K_h = weights_shape[2];
+                size_t K_w = kernel_list[n][0]
+                                 .size();  // include only kernel elements that would not be multiplied by zero padding
+                const float* weight_ptr = weights_const->get_data_ptr<float>();
+                std::vector<float> new_weights(C_out * C_in * K_h * K_w, 0.0f);
+                float* new_weight_ptr = new_weights.data();
+                size_t i_step = weights_shape[1] * weights_shape[2] * weights_shape[3];
+                size_t j_step = weights_shape[2] * weights_shape[3];
+                size_t k_step = weights_shape[3];
+                bool print_stuff = false;
+                if (print_stuff) {
+                    printf("prev weights\n");
+                    for (size_t i = 0; i < weights_shape[0]; i++) {
+                        for (size_t j = 0; j < weights_shape[1]; j++) {
+                            for (size_t k = 0; k < weights_shape[2]; k++) {
+                                for (size_t n = 0; n < weights_shape[3]; n++) {
+                                    printf("%d %d %d %d: %f\n",
+                                           (int)i,
+                                           (int)j,
+                                           (int)k,
+                                           (int)n,
+                                           *(weight_ptr + i * i_step + j * j_step + k * k_step + n));
+                                }
+                            }
+                        }
+                    }
+                    if (add_after) {
+                        printf("bias\n");
+                        auto bias_const = std::dynamic_pointer_cast<opset1::Constant>(
+                            add_after->input_value(1).get_node_shared_ptr());
+                        const float* bias_ptr = bias_const->get_data_ptr<float>();
+                        for (size_t j = 0; j < weights_shape[1]; j++) {
+                            printf("%e\n", *(bias_ptr + j));
+                        }
+                    }
+                    printf("weights\n");
+                }
+                for (size_t i = 0; i < C_out; i++) {
+                    for (size_t j = 0; j < C_in; j++) {
+                        size_t k = i / weights_shape[1];
+                        for (size_t m = 0; m < kernel_list[n][k].size(); m++) {
+                            size_t i_prev = j;                     // input channel
+                            size_t j_prev = i % weights_shape[1];  // output channel
+                            size_t k_prev = kernel_list[n][k][m];  // kernel element
+                            if (k_prev == PAD_VALUE) {
+                                for (size_t n = 0; n < K_h; n++) {
+                                    *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + n * K_w + m) = 0;
+                                    if (print_stuff) {
+                                        printf("%d %d %d %d: %f\n",
+                                               (int)i,
+                                               (int)j,
+                                               (int)n,
+                                               (int)m,
+                                               *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + n * K_w + m));
+                                    }
+                                }
+                            } else {
+                                for (size_t n = 0; n < K_h; n++) {
+                                    *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + n * K_w + m) =
+                                        *(weight_ptr + i_prev * i_step + j_prev * j_step + (K_h - n - 1) * k_step +
+                                          k_prev);
+                                    if (print_stuff) {
+                                        printf("%d %d %d %d: %f\n",
+                                               (int)i,
+                                               (int)j,
+                                               (int)n,
+                                               (int)m,
+                                               *(new_weight_ptr + i * C_in * K_h * K_w + j * K_h * K_w + n * K_w + m));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                ov::Strides new_strides = {1, 1};
+                ov::CoordinateDiff new_pads_begin = {(int64_t)H_pad_outer, 0};
+                ov::CoordinateDiff new_pads_end = {(int64_t)H_pad_outer, 0};
+                ov::Strides new_dilations = {1, 1};
+                auto new_weights_const =
+                    op::Constant::create(ngraph::element::f32, Shape{C_out, C_in, K_h, K_w}, new_weights);
+                auto new_conv = std::make_shared<opset1::Convolution>(new_reshape->output(0),
+                                                                      new_weights_const->output(0),
+                                                                      new_strides,
+                                                                      new_pads_begin,
+                                                                      new_pads_end,
+                                                                      new_dilations,
+                                                                      PadType::EXPLICIT);
+                auto conv_shape = new_conv->get_output_shape(0);
+                auto H_out = conv_shape[1] * conv_shape[2] / weights_shape[1];
+                auto W_out = conv_shape[3];
+                upstream.push_back(new_conv->output(0));
+                if (add_after != nullptr) {  // need to repeat bias vector to match new convolution
+                    auto bias_const =
+                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
+                    if (bias_const != nullptr) {
+                        const float* bias_ptr = bias_const->get_data_ptr<float>();
+                        std::vector<float> new_bias(C_out, 0.0f);
+                        float* new_bias_ptr = new_bias.data();
+                        for (size_t i = 0; i < C_out; i++) {
+                            size_t j = i % weights_shape[1];
+                            *(new_bias_ptr + i) = *(bias_ptr + j);
+                        }
+                        auto new_bias_const =
+                            op::Constant::create(ngraph::element::f32, Shape{1ull, C_out, 1ull, 1ull}, new_bias);
+                        auto new_add = std::make_shared<opset1::Add>(new_conv->output(0), new_bias_const->output(0));
+                        upstream[0] = new_add->output(0);
+                    }
+                }
+                InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                if (conv_shape[1] == weights_shape[1]) {
+                    auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                        upstream[0],
+                        op::Constant::create(ngraph::element::i64, Shape{4}, {N, weights_shape[1], H_out, W_out})
+                            ->output(0),
+                        false);
+                    parts.push_back(new_reshape->output(0));
+                } else {
+                    if (conv_shape[3] == 1) {
+                        auto num_splits = (conv_shape[0] * conv_shape[1]) / weights_shape[1];
+                        if (num_splits > 1) {
+                            auto new_split = std::make_shared<ngraph::opset1::Split>(
+                                upstream[0],
+                                ngraph::opset1::Constant::create(element::i64, Shape{}, {1}),
+                                num_splits);
+                            for (uint32_t i = 0; i < num_splits; i++) {
+                                parts.push_back(new_split->output(i));
+                            }
+                        } else {
+                            parts.push_back(upstream[0]);
+                        }
+                    } else {
+                        auto num_channels = weights_shape[1];
+                        auto num_outputs_per_chan = conv_shape[1] / weights_shape[1];
+                        auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                            upstream[0],
+                            op::Constant::create(ngraph::element::i64,
+                                                 Shape{2},
+                                                 {num_outputs_per_chan, num_channels * conv_shape[3]})
+                                ->output(0),
+                            false);
+                        auto new_transpose = std::make_shared<op::Transpose>(
+                            new_reshape->output(0),
+                            op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+                        upstream[0] = new_transpose->output(0);
+                        if (num_channels > 1) {
+                            auto new_split = std::make_shared<ngraph::opset1::Split>(
+                                upstream[0],
+                                ngraph::opset1::Constant::create(element::i64, Shape{}, {0}),
+                                num_channels);
+                            OutputVector subparts;
+                            for (uint32_t i = 0; i < num_channels; i++) {
+                                auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                                    new_split->output(i),
+                                    op::Constant::create(ngraph::element::i64,
+                                                         Shape{2},
+                                                         std::initializer_list<decltype(num_outputs_per_chan)>{
+                                                             1ull,
+                                                             num_outputs_per_chan * conv_shape[3]})
+                                        ->output(0),
+                                    false);
+                                subparts.push_back(new_reshape->output(0));
+                            }
+                            auto new_concat = std::make_shared<ngraph::opset1::Concat>(subparts, 0);
+                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                                new_concat->output(0),
+                                op::Constant::create(
+                                    ngraph::element::i64,
+                                    Shape{4},
+                                    std::initializer_list<decltype(num_channels)>{1ull,
+                                                                                  num_channels,
+                                                                                  1ull,
+                                                                                  num_outputs_per_chan * conv_shape[3]})
+                                    ->output(0),
+                                false);
+                            parts.push_back(new_reshape->output(0));
+                        } else {
+                            auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
+                                upstream[0],
+                                op::Constant::create(
+                                    ngraph::element::i64,
+                                    Shape{4},
+                                    std::initializer_list<decltype(num_channels)>{1ull,
+                                                                                  num_channels,
+                                                                                  1ull,
+                                                                                  num_outputs_per_chan * conv_shape[3]})
                                     ->output(0),
                                 false);
                             parts.push_back(new_reshape->output(0));
@@ -937,7 +1441,7 @@ bool ngraph::pass::TransposeConvolutionNchwDecomposition::run_on_model(const std
                     }
                 }
             }
-            auto new_concat = std::make_shared<ngraph::opset1::Concat>(parts, 2);
+            auto new_concat = std::make_shared<ngraph::opset1::Concat>(parts, 3);
             if (reshape_after != nullptr) {
                 ngraph::replace_node(reshape_after, new_concat);
             } else if (prelu_after) {

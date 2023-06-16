@@ -31,13 +31,12 @@
 using namespace ngraph;
 using namespace op;
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::ToNHWC, "ToNHWC");
-bool ngraph::pass::ToNHWC::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool ngraph::pass::ToNHWC::run_on_model(const std::shared_ptr<ngraph::Function>& f) {
     std::vector<std::shared_ptr<ov::Node>> to_add, to_add_new;  // list of nodes to add to path
     std::vector<std::shared_ptr<ov::Node>> path, new_path;
     bool is_graph_modfied = false;
     // Traverse nGraph Function in topological order to find starting points for search path
-    for (auto& node : m->get_ordered_ops()) {
+    for (auto& node : f->get_ordered_ops()) {
         auto parameter = std::dynamic_pointer_cast<Parameter>(node);
         if (nullptr == parameter) {
             continue;

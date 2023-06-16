@@ -30,11 +30,10 @@
 using namespace ngraph;
 using namespace op;
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::MatMulDecomposition, "MatMulDecomposition");
-bool ngraph::pass::MatMulDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool ngraph::pass::MatMulDecomposition::run_on_model(const std::shared_ptr<ngraph::Function>& f) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : m->get_ordered_ops()) {
+    for (auto& node : f->get_ordered_ops()) {
         auto matmul = std::dynamic_pointer_cast<MatMul>(node);
         if (nullptr == matmul) {
             continue;
@@ -65,6 +64,100 @@ bool ngraph::pass::MatMulDecomposition::run_on_model(const std::shared_ptr<ov::M
             continue;
         } else if (N != 1) {
             continue;  // Batch case not yet implemented
+        } else if ((!transpose_a) && (const_b) && (parent_b_shape.size() == 2)) {  // factorization is straightforward
+            OutputVector upstream;
+            upstream.push_back(parent_a);
+            if (parent_a_shape.size() > 2) {
+                if (C_a == 1) {
+                    auto new_reshape = std::make_shared<op::v1::Reshape>(
+                        parent_a,
+                        op::Constant::create(ngraph::element::i64, Shape{2}, {H_a, W_a})->output(0),
+                        false);
+                    upstream[0] = new_reshape->output(0);
+                } else if (H_a == 1) {
+                    auto new_reshape = std::make_shared<op::v1::Reshape>(
+                        parent_a,
+                        op::Constant::create(ngraph::element::i64, Shape{2}, {C_a, W_a})->output(0),
+                        false);
+                    upstream[0] = new_reshape->output(0);
+                } else if (W_a == 1) {
+                    auto new_reshape = std::make_shared<op::v1::Reshape>(
+                        parent_a,
+                        op::Constant::create(ngraph::element::i64, Shape{2}, {C_a, H_a})->output(0),
+                        false);
+                    upstream[0] = new_reshape->output(0);
+                }
+            }
+            std::vector<size_t> split_lengths;
+            OutputVector parts;
+            if (transpose_b) {
+                size_t H_b_left = H_b;
+                while (H_b_left > 0) {
+                    size_t H_b_part = (H_b_left > 8) ? 8 : H_b_left;
+                    H_b_left -= H_b_part;
+                    split_lengths.push_back(H_b_part);
+                }
+                size_t offset = 0;
+                for (size_t k = 0; k < split_lengths.size(); k++) {
+                    size_t H_new = W_b;
+                    size_t W_new = split_lengths[k];
+                    const float* weights_ptr = const_b->get_data_ptr<float>();
+                    std::vector<float> new_weights(H_new * W_new, 0.0f);
+                    float* new_weights_ptr = new_weights.data();
+                    for (size_t i = 0; i < H_new; i++) {
+                        for (size_t j = 0; j < W_new; j++) {
+                            new_weights_ptr[i * W_new + j] = weights_ptr[(j + offset) * H_b + i];
+                        }
+                    }
+                    auto new_weights_const =
+                        op::Constant::create(ngraph::element::f32, Shape{W_b, split_lengths[k]}, new_weights);
+                    auto new_matmul = std::make_shared<op::MatMul>(upstream[0], new_weights_const, false, false);
+                    auto new_transpose =
+                        std::make_shared<op::Transpose>(new_matmul->output(0),
+                                                        op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+                    parts.push_back(new_transpose->output(0));
+                    offset += W_new;
+                }
+            } else {
+                size_t W_b_left = W_b;
+                while (W_b_left > 0) {
+                    size_t W_b_part = (W_b_left > 8) ? 8 : W_b_left;
+                    W_b_left -= W_b_part;
+                    split_lengths.push_back(W_b_part);
+                }
+                size_t offset = 0;
+                for (size_t k = 0; k < split_lengths.size(); k++) {
+                    size_t H_new = H_b;
+                    size_t W_new = split_lengths[k];
+                    const float* weights_ptr = const_b->get_data_ptr<float>();
+                    std::vector<float> new_weights(H_new * W_new, 0.0f);
+                    float* new_weights_ptr = new_weights.data();
+                    for (size_t i = 0; i < H_new; i++) {
+                        for (size_t j = 0; j < W_new; j++) {
+                            new_weights_ptr[i * W_new + j] = weights_ptr[i * W_b + j + offset];
+                        }
+                    }
+                    auto new_weights_const =
+                        op::Constant::create(ngraph::element::f32, Shape{H_b, split_lengths[k]}, new_weights);
+                    auto new_matmul = std::make_shared<op::MatMul>(upstream[0], new_weights_const, false, false);
+                    auto new_transpose =
+                        std::make_shared<op::Transpose>(new_matmul->output(0),
+                                                        op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+                    parts.push_back(new_transpose->output(0));
+                    offset += W_new;
+                }
+            }
+            auto new_concat = std::make_shared<opset1::Concat>(parts, 0);
+            // this is a big transpose requiring that the big transpose transformation be run after
+            auto new_transpose =
+                std::make_shared<op::Transpose>(new_concat->output(0),
+                                                op::Constant::create(element::Type_t::i64, Shape{2}, {1, 0}));
+            auto new_reshape = std::make_shared<op::v1::Reshape>(
+                new_transpose->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{matmul_shape.size()}, matmul_shape)->output(0),
+                false);
+            ngraph::replace_node(matmul, new_reshape);
+            is_graph_modfied = true;
         } else {
             if ((transpose_b && (H_b <= 8)) || (!transpose_b && (W_b <= 8))) {
                 // If matmul is already compatible then skip it

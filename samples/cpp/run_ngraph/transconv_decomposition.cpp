@@ -170,13 +170,13 @@ void BuildKernelMap1D(size_t dim_new,
     {
         size_t output_index = 0;
         for (size_t i = 0; i < input_list.size(); i++) {
-            printf("position %zu:\nx%d .. x%d\n", output_index, input_list[i][0], input_list[i][1]);
+            printf("position %llu:\nx%d .. x%d\n", output_index, input_list[i][0], input_list[i][1]);
             for (uint32_t m = 0; m < kernel_list[i].size(); m++) {
                 for (uint32_t n = 0; n < kernel_list[i][m].size(); n++) {
                     if (kernel_list[i][m][n] == PAD_VALUE) {
                         printf("00 ");
                     } else {
-                        printf("k%lu ", kernel_list[i][m][n]);
+                        printf("k%llu ", kernel_list[i][m][n]);
                     }
                 }
                 printf("\n");
@@ -199,11 +199,10 @@ void BuildKernelMap1D(size_t dim_new,
     }
 }
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::TransposeConvolutionDecomposition, "TransposeConvolutionDecomposition");
-bool ngraph::pass::TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool ngraph::pass::TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ngraph::Function>& f) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : m->get_ordered_ops()) {
+    for (auto& node : f->get_ordered_ops()) {
         auto conv = std::dynamic_pointer_cast<ngraph::opset1::ConvolutionBackpropData>(node);
         if (nullptr == conv) {
             continue;
@@ -739,7 +738,7 @@ bool ngraph::pass::TransposeConvolutionDecomposition::run_on_model(const std::sh
                              H_pad_additional,
                              strides[0],
                              weights_shape[2],
-                             false,
+                             true,
                              kernel_list,
                              input_list);
 

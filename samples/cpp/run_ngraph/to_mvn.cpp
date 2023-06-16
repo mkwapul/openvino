@@ -33,11 +33,10 @@ using namespace op;
 // Converts pytorch normalization pattern into MVN layer
 // Pattern:  Unknown --> ReduceMean --> Subtract -->
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::ToMvn, "ToMvn");
-bool ngraph::pass::ToMvn::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool ngraph::pass::ToMvn::run_on_model(const std::shared_ptr<ngraph::Function>& f) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : m->get_ordered_ops()) {
+    for (auto& node : f->get_ordered_ops()) {
         auto reducemean = std::dynamic_pointer_cast<ngraph::opset1::ReduceMean>(node);
         if (reducemean == nullptr) {
             continue;

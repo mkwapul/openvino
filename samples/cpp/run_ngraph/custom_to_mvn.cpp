@@ -36,13 +36,13 @@ using namespace op;
 //                   --------------> Subtract --> Multiply --> ReduceMean --> Add --> Sqrt --> Divide -->
 //                   --> ReduceMean --/
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::CustomToMvn, "CustomToMvn");
-bool ngraph::pass::CustomToMvn::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool ngraph::pass::CustomToMvn::run_on_model(const std::shared_ptr<ngraph::Function>& f) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : m->get_ordered_ops()) {
+    for (auto& node : f->get_ordered_ops()) {
         auto reshape = std::dynamic_pointer_cast<ngraph::opset1::Reshape>(node);
-        if (nullptr == reshape) {
+        auto transpose = std::dynamic_pointer_cast<ngraph::opset1::Transpose>(node);
+        if ((nullptr == reshape) && (nullptr == transpose)) {
             continue;
         }
 
@@ -56,8 +56,12 @@ bool ngraph::pass::CustomToMvn::run_on_model(const std::shared_ptr<ov::Model>& m
         std::shared_ptr<ngraph::opset1::Add> add1 = nullptr;
         std::shared_ptr<ngraph::opset1::Sqrt> sqrt1 = nullptr;
         std::shared_ptr<ngraph::opset1::Divide> divide1 = nullptr;
-        const Output<Node>& input = reshape->input_value(0);
-        auto children = reshape->output(0).get_target_inputs();
+        std::set<ov::Input<ov::Node>> children;
+        if (reshape) {
+            children = reshape->output(0).get_target_inputs();
+        } else {
+            children = transpose->output(0).get_target_inputs();
+        }
         if (children.size() != 4) {
             continue;
         }
@@ -130,12 +134,20 @@ bool ngraph::pass::CustomToMvn::run_on_model(const std::shared_ptr<ov::Model>& m
         auto normalize_variance = true;
         float epsilon = *epsilon_ptr;
         op::MVNEpsMode eps_mode = op::MVNEpsMode::INSIDE_SQRT;
-        auto mvn_1 =
-            std::make_shared<op::v6::MVN>(reshape->output(0),
-                                          op::Constant::create(ngraph::element::i64, Shape{1}, {-1})->output(0),
-                                          normalize_variance,
-                                          epsilon,
-                                          eps_mode);
+        std::shared_ptr<ngraph::op::v6::MVN> mvn_1 = nullptr;
+        if (reshape) {
+            mvn_1 = std::make_shared<op::v6::MVN>(reshape->output(0),
+                                                  op::Constant::create(ngraph::element::i64, Shape{1}, {1})->output(0),
+                                                  normalize_variance,
+                                                  epsilon,
+                                                  eps_mode);
+        } else {
+            mvn_1 = std::make_shared<op::v6::MVN>(transpose->output(0),
+                                                  op::Constant::create(ngraph::element::i64, Shape{1}, {1})->output(0),
+                                                  normalize_variance,
+                                                  epsilon,
+                                                  eps_mode);
+        }
 
         ngraph::replace_node(divide1, mvn_1);
         is_graph_modfied = true;

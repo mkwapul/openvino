@@ -128,7 +128,7 @@ std::shared_ptr<ov::Node> AdlChannelPadTensor(Output<Node> parent) {
     return (result);
 }
 
-std::shared_ptr<ov::Node> AdlChannelPadKernel(const Output<Node>& weights_const_output, size_t C) {
+std::shared_ptr<ov::Node> AdlChannelPadKernel(Output<Node>& weights_const_output, size_t C) {
     std::shared_ptr<ov::Node> result = nullptr;
 
     auto weights_const =
@@ -175,7 +175,7 @@ std::shared_ptr<ov::Node> NchwToNhwc(Output<Node> parent) {
             auto new_transpose = std::make_shared<op::Transpose>(new_reshape->output(0), transpose_const);
             result = std::make_shared<ngraph::opset1::Reshape>(
                 new_transpose->output(0),
-                op::Constant::create(ngraph::element::i64, Shape{4}, std::initializer_list<decltype(C)>{1ull, H, W, C})
+                op::Constant::create(ngraph::element::i64, Shape{4}, std::initializer_list<decltype(H)>{1ull, H, W, C})
                     ->output(0),
                 false);
         }
@@ -398,7 +398,7 @@ std::shared_ptr<ov::Node> AdlInsertConvolutionAddReluHpadCsplit(Output<Node> par
                     concat->output(0),
                     op::Constant::create(ngraph::element::i64,
                                          Shape{4},
-                                         std::initializer_list<decltype(W)>{1ull, H_new, W, c_split_lengths[j]})
+                                         std::initializer_list<decltype(H_new)>{1ull, H_new, W, c_split_lengths[j]})
                         ->output(0),
                     false);
                 upstream.push_back(new_reshape->output(0));
@@ -689,7 +689,7 @@ std::shared_ptr<ov::Node> AdlBigTranspose2d(Output<Node> parent) {
         if (input_shape.size() == 3) {
             auto reshape = std::make_shared<ngraph::opset1::Reshape>(
                 upstream[0],
-                op::Constant::create(ngraph::element::i64, Shape{3}, std::initializer_list<decltype(H)>{1ull, W, H})
+                op::Constant::create(ngraph::element::i64, Shape{3}, std::initializer_list<decltype(W)>{1ull, W, H})
                     ->output(0),
                 false);
             upstream[0] = reshape->output(0);

@@ -34,17 +34,15 @@
 namespace ngraph {
 namespace pass {
 
-class MatMulDecomposition;
-
-}  // namespace pass
-}  // namespace ngraph
-
 /**
  * @ingroup ie_transformation_common_api
  * @brief MvnDecomposition transformation breaks MVN layers into primitive operations.
  */
-class ngraph::pass::MatMulDecomposition : public ngraph::pass::FunctionPass {
+class MatMulDecomposition : public FunctionPass {
 public:
-    NGRAPH_RTTI_DECLARATION;
-    bool run_on_model(const std::shared_ptr<ov::Model>& m) override;
+    OPENVINO_RTTI("MatMulDecomposition", "0");
+    bool run_on_model(const std::shared_ptr<ngraph::Function>& f) override;
 };
+
+}  // namespace pass
+}  // namespace ngraph

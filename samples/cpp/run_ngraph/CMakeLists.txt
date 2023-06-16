@@ -12,4 +12,4 @@ ie_add_sample(NAME run_ngraph
               HEADERS ${MAIN_HEADERS}
               DEPENDENCIES format_reader inference_engine_transformations)
 
-target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/src/plugins/intel_gna/legacy/include/)

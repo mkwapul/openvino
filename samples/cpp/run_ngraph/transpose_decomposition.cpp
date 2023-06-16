@@ -77,11 +77,10 @@ std::vector<size_t> CombineFactors(std::vector<size_t> factors) {
     return (combined_factors);
 }
 
-NGRAPH_RTTI_DEFINITION(ngraph::pass::TransposeDecomposition, "TransposeDecomposition");
-bool ngraph::pass::TransposeDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool ngraph::pass::TransposeDecomposition::run_on_model(const std::shared_ptr<ngraph::Function>& f) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
-    for (auto& node : m->get_ordered_ops()) {
+    for (auto& node : f->get_ordered_ops()) {
         auto transpose = std::dynamic_pointer_cast<Transpose>(node);
         if (nullptr == transpose) {
             continue;
@@ -115,6 +114,12 @@ bool ngraph::pass::TransposeDecomposition::run_on_model(const std::shared_ptr<ov
 
         if (N != 1) {
             continue;  // Batch case not yet implemented
+        } else if (((input_shape.size() == 4) && (order[0] == 0) && (order[1] == 3) && (order[2] == 1) &&
+                    (order[3] == 2))) {
+            continue;  // potential leading transpose needed for NHWC convolution
+        } else if (((input_shape.size() == 4) && (order[0] == 0) && (order[1] == 2) && (order[2] == 3) &&
+                    (order[3] == 1))) {
+            continue;  // potential trailing transpose needed for NHWC convolution
         } else {
             // test for simple 2D transpose
             if (((input_shape.size() == 4) && (order[0] == 0) && (order[1] == 3) && (order[2] == 1) &&

@@ -29,10 +29,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "concat_decomposition.hpp"
 #include "convert_dwsc_to_scaleshifts.hpp"
+#include "custom_to_mvn.hpp"
 #include "groupconv1d_decomposition.hpp"
 #include "groupconv_decomposition.hpp"
 #include "ie_core.hpp"
+#include "l2norm_decomposition.hpp"
 #include "matmul_decomposition.hpp"
 #include "mvn_decomposition.hpp"
 #include "ngraph/ngraph.hpp"
@@ -41,6 +44,7 @@
 #include "ngraph/opsets/opset3.hpp"
 #include "ngraph/pass/serialize.hpp"
 #include "openvino/openvino.hpp"
+#include "padconv_decomposition.hpp"
 #include "softmax_decomposition.hpp"
 #include "to_mvn.hpp"
 #include "to_nhwc.hpp"
@@ -49,8 +53,6 @@
 #include "transformations/common_optimizations/common_optimizations.hpp"
 #include "transformations/op_conversions/lstm_cell_decomposition.hpp"
 #include "transpose_decomposition.hpp"
-//#include "dolby_fragment.hpp"
-#include "transformations/op_conversions/lstm_cell_decomposition.hpp"
 
 std::list<std::string> passes({"mvn",
                                "softmax",
@@ -63,7 +65,11 @@ std::list<std::string> passes({"mvn",
                                "dwsc",
                                "lstmcell",
                                "to_mvn",
-                               "to_nhwc"});
+                               "to_mvn2",
+                               "to_nhwc",
+                               "l2norm",
+                               "concat",
+                               "padconv"});
 
 using namespace InferenceEngine;
 using namespace ngraph;
@@ -92,8 +98,16 @@ void RegisterPass(ngraph::pass::Manager& manager, std::string name) {
         manager.register_pass<ov::pass::LSTMCellDecomposition>();
     } else if (name == "to_mvn") {
         manager.register_pass<ngraph::pass::ToMvn>();
+    } else if (name == "to_mvn2") {
+        manager.register_pass<ngraph::pass::CustomToMvn>();
     } else if (name == "to_nhwc") {
         manager.register_pass<ngraph::pass::ToNHWC>();
+    } else if (name == "l2norm") {
+        manager.register_pass<ngraph::pass::L2NormDecomposition>();
+    } else if (name == "concat") {
+        manager.register_pass<ngraph::pass::ConcatDecomposition>();
+    } else if (name == "padconv") {
+        manager.register_pass<ngraph::pass::PadConvolutionDecomposition>();
     }
 }
 

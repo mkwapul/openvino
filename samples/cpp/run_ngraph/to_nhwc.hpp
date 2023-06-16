@@ -33,17 +33,15 @@
 namespace ngraph {
 namespace pass {
 
-class ToNHWC;
-
-}  // namespace pass
-}  // namespace ngraph
-
 /**
  * @ingroup ie_transformation_common_api
  * @brief TransposeConvolutionDecomposition transformation breaks down 2d conv into set of 1d conv.
  */
-class ngraph::pass::ToNHWC : public ngraph::pass::FunctionPass {
+class ToNHWC : public FunctionPass {
 public:
-    NGRAPH_RTTI_DECLARATION;
-    bool run_on_model(const std::shared_ptr<ov::Model>& m) override;
+    OPENVINO_RTTI("ToNHWC", "0");
+    bool run_on_model(const std::shared_ptr<ngraph::Function>& f) override;
 };
+
+}  // namespace pass
+}  // namespace ngraph

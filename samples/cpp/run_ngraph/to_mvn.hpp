@@ -33,17 +33,16 @@
 namespace ngraph {
 namespace pass {
 
-class ToMvn;
-
-}  // namespace pass
-}  // namespace ngraph
 
 /**
  * @ingroup ie_transformation_common_api
  * @brief ToMVN transformation replaces PyTorch norm pattern with MVN.
  */
-class ngraph::pass::ToMvn : public ngraph::pass::FunctionPass {
+class ToMvn : public FunctionPass {
 public:
-    NGRAPH_RTTI_DECLARATION;
-    bool run_on_model(const std::shared_ptr<ov::Model>& m) override;
+    OPENVINO_RTTI("ToMvn", "0");
+    bool run_on_model(const std::shared_ptr<ngraph::Function>& m) override;
 };
+
+}  // namespace pass
+}  // namespace ngraph
