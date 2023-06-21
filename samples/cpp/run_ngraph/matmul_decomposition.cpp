@@ -63,7 +63,7 @@ bool ngraph::pass::MatMulDecomposition::run_on_model(const std::shared_ptr<ngrap
         if (matmul_shape.size() == 1) {
             continue;
         } else if (N != 1) {
-            continue;  // Batch case not yet implemented
+            continue;                                                              // Batch case not yet implemented
         } else if ((!transpose_a) && (const_b) && (parent_b_shape.size() == 2)) {  // factorization is straightforward
             OutputVector upstream;
             upstream.push_back(parent_a);

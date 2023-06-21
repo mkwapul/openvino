@@ -33,7 +33,6 @@
 namespace ngraph {
 namespace pass {
 
-
 /**
  * @ingroup ie_transformation_common_api
  * @brief ToMVN transformation replaces PyTorch norm pattern with MVN.

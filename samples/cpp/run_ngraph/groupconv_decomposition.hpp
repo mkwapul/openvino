@@ -33,7 +33,6 @@
 namespace ngraph {
 namespace pass {
 
-
 /**
  * @ingroup ie_transformation_common_api
  * @brief GroupConvolutionDecomposition transformation breaks down 2d conv into set of 1d conv.
