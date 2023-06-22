@@ -68,3 +68,5 @@ speech_sample -m ./test16-2_factorized.xml -i ./test16_input.ark -d CPU -r test1
 speech_sample -m ./test16-2-2_factorized.xml -i ./test32_input.ark -d CPU -r test16-2-2_mkldnn.ark -o test16-2-2_factorized_mkldnn.ark
 speech_sample -m ./test19-64-64_factorized.xml -i ./convtrans_input.ark -d CPU -r test19-64-64_mkldnn.ark -o test19-64-64_factorized_mkldnn.ark
 #speech_sample -m ./convtrans_factorized.xml -i ./convtrans_input.ark -d CPU -r convtrans_mkldnn.ark -o convtrans_factorized_mkldnn.ark
+
+#speech_sample -m ./test7_factorized.xml -i ./test7_input.ark -d SW_GNA_EXACT -r test7_mkldnn.ark -o test7_factorized_gna.ark
