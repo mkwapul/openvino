@@ -52,6 +52,7 @@
 #include "transformations/split_eltwise.hpp"
 #include "transformations/substitute_softsign.hpp"
 #include "transformations/swap_input_matmul_gna.hpp"
+#include "transformations/transconv_decomposition.hpp"
 #include "transformations/unfuse_reshape_and_transpose.hpp"
 #include "transformations/utils/utils.hpp"
 
@@ -69,6 +70,8 @@ void TransformationsPipeline::apply(const std::shared_ptr<ov::Model>& model,
                          ov::op::util::has_op_with_type<ov::op::v0::MVN>(model);
     ov::pass::Manager manager;
     manager.register_pass<ov::pass::InitNodeInfo>();
+
+    manager.register_pass<ov::intel_gna::pass::TransposeConvolutionDecomposition>();
 
     // In OV API 2.0(IRv10) default convertion to fp32 (inputs, outputs and weights) is disabled
     // and we need to run the ConvertPrecision transformation to support old networks.
