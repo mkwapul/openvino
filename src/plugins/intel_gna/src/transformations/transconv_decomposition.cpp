@@ -189,12 +189,12 @@ static void InsertActivation(ov::OutputVector& upstream,
                              std::shared_ptr<ov::op::v0::Sigmoid> sigmoid,
                              std::shared_ptr<ov::op::v0::Tanh> tanh) {
     if (prelu) {
-        auto slope_const = std::dynamic_pointer_cast<ov::opset1::Constant>(prelu->input_value(1).get_node_shared_ptr());
+        auto slope_const = std::dynamic_pointer_cast<ov::op::v0::Constant>(prelu->input_value(1).get_node_shared_ptr());
         const float* slope_ptr = slope_const->get_data_ptr<float>();
         std::vector<float> new_slope(1, 0.0f);
         float* new_slope_ptr = new_slope.data();
         *new_slope_ptr = *slope_ptr;
-        auto new_prelu_slope = op::v0::Constant::create(ngraph::element::f32, ov::Shape{1ull}, new_slope);
+        auto new_prelu_slope = ov::op::v0::Constant::create(ngraph::element::f32, ov::Shape{1ull}, new_slope);
         auto new_prelu = std::make_shared<ov::opset1::PRelu>(upstream[0], new_prelu_slope->output(0));
         upstream[0] = new_prelu->output(0);
     } else if (relu) {
@@ -230,7 +230,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
         auto pads_begin = conv->get_pads_begin();
         auto pads_end = conv->get_pads_end();
         auto strides = conv->get_strides();
-        auto weights_const = std::dynamic_pointer_cast<opset1::Constant>(conv->input_value(1).get_node_shared_ptr());
+        auto weights_const = std::dynamic_pointer_cast<op::v0::Constant>(conv->input_value(1).get_node_shared_ptr());
 
         if (weights_shape.size() ==
             4) {  // ConvTranspose2d: 4D input with N=1, 4D filters, 2D stride, 2D dilation, 2D padding
@@ -461,7 +461,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                     }
                     printf("bias\n");
                     auto bias_const =
-                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
+                        std::dynamic_pointer_cast<op::v0::Constant>(add_after->input_value(1).get_node_shared_ptr());
                     const float* bias_ptr = bias_const->get_data_ptr<float>();
                     for (size_t j = 0; j < weights_shape[1]; j++) {
                         printf("%e\n", *(bias_ptr + j));
@@ -503,7 +503,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                                                                       op::PadType::VALID);
                 if (add_after != nullptr) {  // need to repeat bias vector to match new convolution
                     auto bias_const =
-                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
+                        std::dynamic_pointer_cast<op::v0::Constant>(add_after->input_value(1).get_node_shared_ptr());
                     if (bias_const != nullptr) {
                         const float* bias_ptr = bias_const->get_data_ptr<float>();
                         std::vector<float> new_bias(C_out, 0.0f);
@@ -629,7 +629,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                     }
                     printf("bias\n");
                     auto bias_const =
-                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
+                        std::dynamic_pointer_cast<op::v0::Constant>(add_after->input_value(1).get_node_shared_ptr());
                     const float* bias_ptr = bias_const->get_data_ptr<float>();
                     for (size_t j = 0; j < weights_shape[1]; j++) {
                         printf("%e\n", *(bias_ptr + j));
@@ -671,7 +671,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                                                                       op::PadType::VALID);
                 if (add_after != nullptr) {  // need to repeat bias vector to match new convolution
                     auto bias_const =
-                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
+                        std::dynamic_pointer_cast<op::v0::Constant>(add_after->input_value(1).get_node_shared_ptr());
                     if (bias_const != nullptr) {
                         const float* bias_ptr = bias_const->get_data_ptr<float>();
                         std::vector<float> new_bias(C_out, 0.0f);
@@ -801,7 +801,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                     }
                     printf("bias\n");
                     auto bias_const =
-                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
+                        std::dynamic_pointer_cast<op::v0::Constant>(add_after->input_value(1).get_node_shared_ptr());
                     const float* bias_ptr = bias_const->get_data_ptr<float>();
                     for (size_t j = 0; j < weights_shape[1]; j++) {
                         printf("%e\n", *(bias_ptr + j));
@@ -851,7 +851,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                                                                       op::PadType::EXPLICIT);
                 if (add_after != nullptr) {  // need to repeat bias vector to match new convolution
                     auto bias_const =
-                        std::dynamic_pointer_cast<opset1::Constant>(add_after->input_value(1).get_node_shared_ptr());
+                        std::dynamic_pointer_cast<op::v0::Constant>(add_after->input_value(1).get_node_shared_ptr());
                     if (bias_const != nullptr) {
                         const float* bias_ptr = bias_const->get_data_ptr<float>();
                         std::vector<float> new_bias(C_out, 0.0f);
@@ -938,7 +938,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                         auto num_splits = output_shape[3] / weights_shape[1];
                         auto new_split =
                             std::make_shared<opset1::Split>(new_transpose->output(0),
-                                                            opset1::Constant::create(element::i64, Shape{}, {0}),
+                                                            op::v0::Constant::create(element::i64, Shape{}, {0}),
                                                             num_splits);
                         for (uint32_t i = 0; i < num_splits; i++) {
                             new_transpose = std::make_shared<ov::op::v1::Transpose>(
