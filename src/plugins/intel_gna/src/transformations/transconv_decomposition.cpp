@@ -226,7 +226,6 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
         auto input_shape = input.get_shape();
         auto weights_shape = weights.get_shape();
         auto output_shape = conv->get_output_shape();
-        auto auto_pad = conv->get_auto_pad();
         auto dilations = conv->get_dilations();
         auto output_padding = conv->get_output_padding();
         auto pads_begin = conv->get_pads_begin();
