@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "transconv_decomposition.hpp"
+#include "decompose_transconv.hpp"
 
 #include "openvino/core/node_vector.hpp"
 #include "openvino/core/shape.hpp"
