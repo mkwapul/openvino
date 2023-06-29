@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 // TODO: remove unused includes
+// TODO: fix "" vs <>
 #include <fstream>
 #include <legacy/ngraph_ops/convolution_ie.hpp>
 #include <legacy/ngraph_ops/deconvolution_ie.hpp>
@@ -25,6 +26,7 @@
 
 #include "common_test_utils/ngraph_test_utils.hpp"
 #include "common_test_utils/test_common.hpp"
+#include "transformations/decompose_transconv.hpp"
 
 using namespace testing;
 
@@ -222,7 +224,7 @@ TEST_P(DecomposeTransconvTest, CompareFunctions) {
     const auto orig_shape = m->get_output_partial_shape(0);
     ngraph::pass::Manager manager;
     manager.register_pass<ov::pass::InitNodeInfo>();
-    manager.register_pass<ngraph::pass::ConvertConvolutions>();
+    manager.register_pass<ov::intel_gna::pass::TransposeConvolutionDecomposition>();
     manager.run_passes(m);
     ASSERT_NO_THROW(check_rt_info(m));
     auto res = compare_functions(m, m_ref);
