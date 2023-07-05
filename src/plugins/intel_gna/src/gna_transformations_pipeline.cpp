@@ -27,6 +27,7 @@
 #include "transformations/convert_precision.hpp"
 #include "transformations/decompose_2d_convolution.hpp"
 #include "transformations/decompose_mvn.hpp"
+#include "transformations/decompose_transconv.hpp"
 #include "transformations/disable_decompression_convert_constant_folding.hpp"
 #include "transformations/handle_transposes_around_matmul.hpp"
 #include "transformations/init_node_info.hpp"
@@ -52,7 +53,6 @@
 #include "transformations/split_eltwise.hpp"
 #include "transformations/substitute_softsign.hpp"
 #include "transformations/swap_input_matmul_gna.hpp"
-#include "transformations/transconv_decomposition.hpp"
 #include "transformations/unfuse_reshape_and_transpose.hpp"
 #include "transformations/utils/utils.hpp"
 

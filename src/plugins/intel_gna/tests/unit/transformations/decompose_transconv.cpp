@@ -14,6 +14,7 @@
 #include <memory>
 #include <ngraph/function.hpp>
 #include <ngraph/opsets/opset1.hpp>
+#include <ngraph/opsets/opset11.hpp>
 #include <ngraph/pass/constant_folding.hpp>
 #include <ngraph/pass/manager.hpp>
 #include <ngraph/pass/visualize_tree.hpp>
@@ -23,9 +24,11 @@
 #include <string>
 #include <transformations/init_node_info.hpp>
 #include <transformations/utils/utils.hpp>
+#include <tuple>
 
 #include "common_test_utils/ngraph_test_utils.hpp"
 #include "common_test_utils/test_common.hpp"
+#include "openvino/core/node_vector.hpp"
 #include "transformations/decompose_transconv.hpp"
 
 using namespace testing;
@@ -38,6 +41,7 @@ using ov::op::v0::Parameter;
 using ov::op::v0::Result;
 using ov::op::v1::ConvolutionBackpropData;
 using ov::op::v1::Transpose;
+using ov::op::v8::Slice;
 
 using DecomposeTransconvParamsType = std::tuple<size_t,  // N
                                                 size_t,  // H
@@ -92,6 +96,113 @@ static void fillRandom(std::vector<float>& data) {
     }
 }
 
+static std::shared_ptr<ov::Model> createReferenceModel(const DecomposeTransconvParam& param) {
+    ov::Shape new_shape;
+
+    std::shared_ptr<Parameter> input_2d =
+        std::make_shared<Parameter>(ov::element::Type_t::f32,
+                                    ov::Shape(std::vector<size_t>{{1, param.N * param.H * param.W * param.C}}));
+
+    setNodeNames(input_2d, "input");
+    auto upstr = input_2d->output(0);
+
+    auto weight_shape = ov::Shape{param.Cin, param.Cout, param.Kh, param.Kw};
+    auto strides = ov::Strides{param.stride0, param.stride1};
+    auto pads_begin =
+        ov::CoordinateDiff{static_cast<int64_t>(param.pads_begin0), static_cast<int64_t>(param.pads_begin1)};
+    auto pads_end = ov::CoordinateDiff{static_cast<int64_t>(param.pads_end0), static_cast<int64_t>(param.pads_end1)};
+    auto dilations = ov::Strides{param.dilat0, param.dilat1};
+    // auto auto_pad = ov::op::PadType::EXPLICIT;
+    uint32_t out_pad_h = (param.H + pads_begin[0] + pads_end[0] - param.Kh) % strides[0];
+    uint32_t out_pad_w = (param.W + pads_begin[1] + pads_end[1] - param.Kw) % strides[1];
+    auto output_padding = ov::CoordinateDiff{out_pad_h, out_pad_w};
+
+    auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
+        upstr,
+        Constant::create(ngraph::element::i64, ov::Shape{4}, {param.N, param.H, param.W, param.C})->output(0),
+        false);
+    setNodeNames(input_4d, "Reshape4D");
+    upstr = input_4d->output(0);
+
+    // Insert convolutions
+    ov::OutputVector parts;
+
+    for (size_t n = 0; n < 3; n++) {
+        auto upstr_inner =
+            std::make_shared<ngraph::opset1::Reshape>(
+                upstr,
+                Constant::create(ngraph::element::i64, ngraph::Shape{2}, {param.N * param.H, param.W * param.C})
+                    ->output(0),
+                false)
+                ->output(0);
+
+        upstr_inner = std::make_shared<ngraph::opset11::Slice>(
+                          upstr_inner,
+                          Constant::create(ngraph::element::i64, ngraph::Shape{2}, {0, 0})->output(0),  // start
+                          Constant::create(ngraph::element::i64, ngraph::Shape{2}, {1, 1})->output(0),  // stop
+                          Constant::create(ngraph::element::i64, ngraph::Shape{2}, {1, 1})->output(0))
+                          ->output(0);  // step
+
+        upstr_inner = std::make_shared<ngraph::opset11::Reshape>(
+                          upstr_inner,
+                          Constant::create(ngraph::element::i64, ngraph::Shape{4}, {1, 1, 1, 1})->output(0),
+                          false)
+                          ->output(0);
+
+        upstr_inner =
+            std::make_shared<Transpose>(upstr_inner,
+                                        Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 3, 1, 2}))
+                ->output(0);
+
+        upstr_inner = std::make_shared<ngraph::opset11::Convolution>(
+            upstr_inner,
+            Constant::create(ngraph::element::f32, ngraph::Shape{2, 1, 1, 1}, std::vector<float>(2 * 1 * 1 * 1, 0.0f))
+                ->output(0),  // weights
+            ngraph::Strides{1, 1},
+            ngraph::CoordinateDiff{0, 0},  // pads_begin
+            ngraph::CoordinateDiff{0, 0},  // pads_end
+            ngraph::Strides{1, 1},         // dilations
+            ov::op::PadType::VALID);
+
+        upstr_inner =
+            std::make_shared<Transpose>(upstr_inner,
+                                        Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 2, 3, 1}))
+                ->output(0);
+
+        upstr_inner = std::make_shared<ngraph::opset11::Reshape>(
+                          upstr_inner,
+                          Constant::create(ngraph::element::i64, ngraph::Shape{4}, {1, 2, 1, 1})->output(0),
+                          false)
+                          ->output(0);
+
+        parts.push_back(upstr_inner);
+    }
+
+    if (parts.size() > 0) {
+        auto new_concat = std::make_shared<ngraph::opset1::Concat>(parts, 1);
+        upstr = new_concat->output(0);
+    }
+
+    auto output = std::make_shared<ngraph::opset1::Reshape>(
+        upstr,
+        Constant::create(ngraph::element::i64, ov::Shape{2}, std::initializer_list<std::size_t>{1, 6})->output(0),
+        false);
+
+    setNodeNames(output, "Reshape2D");
+
+    upstr = output->output(0);
+
+    auto result_full = std::make_shared<Result>(upstr);
+    setNodeNames(result_full, "Result");
+
+    std::shared_ptr<ov::Model> model =
+        std::make_shared<ngraph::Function>(/*std::make_shared<Result>(upstr)*/ result_full,
+                                           ngraph::ParameterVector{input_2d},
+                                           "test_graph");
+
+    return model;
+}
+
 class DecomposeTransconvTest : public CommonTestUtils::TestsCommon,
                                public testing::WithParamInterface<DecomposeTransconvParamsType> {
 public:
@@ -100,7 +211,8 @@ public:
     void SetUp() override;
 
 private:
-    static std::shared_ptr<ov::Model> createInitialModel(DecomposeTransconvParam params);
+    static std::shared_ptr<ov::Model> createInitialModel(const DecomposeTransconvParam& param);
+    // std::shared_ptr<ov::Model> createReferenceModel(const DecomposeTransconvParam& param);
 
     std::shared_ptr<ngraph::Function> get_reference_function(const ngraph::PartialShape& input_shape,
                                                              const ov::Shape& weights_shape) {
@@ -140,11 +252,12 @@ void DecomposeTransconvTest::SetUp() {
 
     m = createInitialModel(param);
 
-    // TODO, mkwap: create initial function
-    // f_ref = get_reference_function(input_shape, weights_shape);
+    m_ref = createReferenceModel(param);
+
+    ov::serialize(m_ref, "DecomposeTransconvTestRerefence.xml", "DecomposeTransconvTestRerefence.bin");
 }
 
-std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(DecomposeTransconvParam param) {
+std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const DecomposeTransconvParam& param) {
     ov::OutputVector upstream;
     ov::Shape new_shape;
 
