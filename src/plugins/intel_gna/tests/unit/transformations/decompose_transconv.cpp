@@ -29,6 +29,7 @@
 #include "common_test_utils/ngraph_test_utils.hpp"
 #include "common_test_utils/test_common.hpp"
 #include "openvino/core/node_vector.hpp"
+#include "openvino/opsets/opset11.hpp"
 #include "transformations/decompose_transconv.hpp"
 
 using namespace testing;
@@ -36,33 +37,14 @@ using namespace testing;
 using InputShape = ngraph::PartialShape;
 using WeightsShape = ngraph::Shape;
 
-// using ov::op::v0::Constant;
-using ngraph::opset11::Constant;
-using ov::op::v0::Parameter;
-using ov::op::v0::Result;
-using ov::op::v1::ConvolutionBackpropData;
-using ov::op::v1::Transpose;
-using ov::op::v8::Slice;
+using ov::opset11::Constant;
+using ov::opset11::ConvolutionBackpropData;
+using ov::opset11::Parameter;
+using ov::opset11::Result;
+using ov::opset11::Slice;
+using ov::opset11::Transpose;
 
-// TODO mkwap: unused
-using DecomposeTransconvParamsType = std::tuple<size_t,  // N
-                                                size_t,  // H
-                                                size_t,  // W
-                                                size_t,  // C
-                                                size_t,  // Cout
-                                                size_t,  // Cin
-                                                size_t,  // Kh
-                                                size_t,  // Kw
-                                                size_t,  // stride0
-                                                size_t,  // stride1
-                                                size_t,  // pads_begin0
-                                                size_t,  // pads_begin1
-                                                size_t,  // pads_end0
-                                                size_t,  // pads_end1
-                                                size_t,  // dilat0
-                                                size_t   // dilat1
-                                                >;
-
+// TODO: split onto strides, shapes etc
 struct TransconvInitParam {
     TransconvInitParam(size_t N_,
                        size_t H_,
@@ -115,33 +97,15 @@ struct TransconvInitParam {
     size_t dilat1{};
 };
 
-using SliceParam = std::pair<ngraph::Shape, ngraph::Shape>;  // start, stop
-using SingleSlice = std::tuple<SliceParam,
-                               ngraph::Shape,  // Convolution Kernel
-                               // TODO, mkwap: guess what it comes from
-                               std::size_t  // out reshape channel numbers
-                               >;
+using SliceLayerParam = std::pair<ngraph::Shape, ngraph::Shape>;  // start, stop
+using SliceParam = std::tuple<SliceLayerParam,                    // Slice Layer param
+                              ngraph::Shape,                      // Convolution Layer Kernel
+                              std::size_t                         // out reshape channel numbers
+                              >;
 
-using TranconvRefParam = std::vector<SingleSlice>;
+using TransconvRefParam = std::vector<SliceParam>;
 
-using TransconvParam = std::pair<TransconvInitParam, TranconvRefParam>;
-
-// TODO: remove
-static void setNodeNames(std::shared_ptr<ov::Node> node, std::string name) {
-    std::string sname(name);
-    node->set_friendly_name(sname);
-    for (uint32_t i = 0; i < node->outputs().size(); i++) {
-        node->get_output_tensor(i).set_names({sname + "_" + std::to_string(i)});
-    }
-}
-
-static void fillRandom(std::vector<float>& data) {
-    std::default_random_engine RNG;
-    std::normal_distribution<float> gaussian(0.0, 1.0);
-    for (uint32_t i = 0; i < data.size(); i++) {
-        data[i] = gaussian(RNG);
-    }
-}
+using TransconvParam = std::pair<TransconvInitParam, TransconvRefParam>;
 
 using ILS = typename std::initializer_list<std::size_t>;
 
@@ -154,7 +118,7 @@ public:
 private:
     static std::shared_ptr<ov::Model> createInitialModel(const TransconvInitParam& param);
     static std::shared_ptr<ov::Model> createReferenceModel(const TransconvInitParam& param,
-                                                           const TranconvRefParam& sliceInputs);
+                                                           const TransconvRefParam& sliceInputs);
 };
 
 void DecomposeTransconvTest::SetUp() {
@@ -175,7 +139,6 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
         std::make_shared<Parameter>(ov::element::Type_t::f32,
                                     ov::Shape(std::vector<size_t>{{1, param.N * param.H * param.W * param.C}}));
 
-    // setNodeNames(input_2d, "input");
     upstream.push_back(input_2d->output(0));
 
     auto weight_shape = ov::Shape{param.Cin, param.Cout, param.Kh, param.Kw};
@@ -194,19 +157,15 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
             upstream[0],
             Constant::create(ngraph::element::i64, ov::Shape{4}, {param.N, param.H, param.W, param.C})->output(0),
             false);
-        // setNodeNames(input_4d, "Reshape4D");
         upstream[0] = input_4d->output(0);
     }
     auto new_transpose =
         std::make_shared<Transpose>(upstream[0],
                                     Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 3, 1, 2}));
-    // setNodeNames(new_transpose, "Transpose");
     upstream[0] = new_transpose->output(0);
 
     std::vector<float> new_weights(param.Cout * param.Cin * param.Kh * param.Kw, 0.0f);
-    fillRandom(new_weights);
     auto new_weights_const = Constant::create(ngraph::element::f32, weight_shape, new_weights);
-    // setNodeNames(new_weights_const, "Weights");
     auto new_conv = std::make_shared<ConvolutionBackpropData>(upstream[0],
                                                               new_weights_const->output(0),
                                                               strides,
@@ -215,11 +174,9 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
                                                               dilations,
                                                               auto_pad,
                                                               output_padding);
-    // setNodeNames(new_conv, "TransposeConvolution");
     upstream[0] = new_conv->output(0);
     new_transpose = std::make_shared<Transpose>(new_conv->output(0),
                                                 Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 2, 3, 1}));
-    // setNodeNames(new_transpose, "UnTranspose");
     upstream[0] = new_transpose->output(0);
     new_shape = upstream[0].get_shape();
 
@@ -234,9 +191,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
                          std::initializer_list<decltype(num_elements)>{1ull, num_elements})
             ->output(0),
         false);
-    // setNodeNames(output_2d, "Reshape2D");
     auto result_full = std::make_shared<Result>(output_2d->output(0));
-    // setNodeNames(result_full, "Result");
     std::shared_ptr<ov::Model> model =
         std::make_shared<ngraph::Function>(result_full, ngraph::ParameterVector{input_2d}, "test_graph");
 
@@ -244,14 +199,13 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
 }
 
 std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const TransconvInitParam& param,
-                                                                        const TranconvRefParam& sliceInputs) {
+                                                                        const TransconvRefParam& sliceInputs) {
     ov::Shape new_shape;
 
     std::shared_ptr<Parameter> input_2d =
         std::make_shared<Parameter>(ov::element::Type_t::f32,
                                     ov::Shape(std::vector<size_t>{{1, param.N * param.H * param.W * param.C}}));
 
-    // setNodeNames(input_2d, "input");
     auto upstrm = input_2d->output(0);
 
     auto weight_shape = ov::Shape{param.Cin, param.Cout, param.Kh, param.Kw};
@@ -269,7 +223,6 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const Tr
         upstrm,
         Constant::create(ngraph::element::i64, ov::Shape{4}, {param.N, param.H, param.W, param.C})->output(0),
         false);
-    // setNodeNames(input_4d, "Reshape4D");
     upstrm = input_4d->output(0);
 
     std::size_t hSumOut{};
@@ -277,7 +230,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const Tr
     ov::OutputVector sliceOutputs;
 
     for (auto& slice : sliceInputs) {
-        SliceParam sliceParam;
+        SliceLayerParam sliceParam;
         ngraph::Shape convKrnlShape;
         std::size_t sliceOutChannels;
         std::tie(sliceParam, convKrnlShape, sliceOutChannels) = slice;
@@ -374,12 +327,9 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const Tr
         Constant::create(ngraph::element::i64, ov::Shape{2}, ILS{1, hSumOut})->output(0),
         false);
 
-    // setNodeNames(output, "Reshape2D");
-
     upstrm = output->output(0);
 
     auto result_full = std::make_shared<Result>(upstrm);
-    // setNodeNames(result_full, "Result");
 
     std::shared_ptr<ov::Model> model =
         std::make_shared<ngraph::Function>(result_full, ngraph::ParameterVector{input_2d}, "test_graph");
@@ -405,78 +355,81 @@ INSTANTIATE_TEST_SUITE_P(
     DecomposeTransconvTest,
     testing::Values(
         // test7:
-        std::make_pair(TransconvInitParam(1, 7, 1, 1, 1, 1, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{
-                           {{SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
-                            {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{6, 1}), ngraph::Shape{3, 1, 1, 1}, 1},
-                            {SliceParam(ngraph::Shape{6, 0}, ngraph::Shape{7, 1}), ngraph::Shape{2, 1, 1, 1}, 1}}}),
+        std::make_pair(
+            TransconvInitParam(1, 7, 1, 1, 1, 1, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
+            TransconvRefParam{
+                {{SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
+                 {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{6, 1}), ngraph::Shape{3, 1, 1, 1}, 1},
+                 {SliceLayerParam(ngraph::Shape{6, 0}, ngraph::Shape{7, 1}), ngraph::Shape{2, 1, 1, 1}, 1}}}),
         // test8:
         std::make_pair(TransconvInitParam(1, 8, 1, 1, 1, 1, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 1}), ngraph::Shape{3, 1, 1, 1}, 1},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 1}), ngraph::Shape{3, 1, 1, 1}, 1},
                        }}),
         // test8s:
-        std::make_pair(TransconvInitParam(1, 8, 1, 1, 1, 1, 3, 1, 2, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{
-                           {{SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{1, 1, 1, 1}, 1},
-                            {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{7, 1}), ngraph::Shape{2, 1, 2, 1}, 1},
-                            {SliceParam(ngraph::Shape{6, 0}, ngraph::Shape{8, 1}), ngraph::Shape{3, 1, 2, 1}, 1}}}),
+        std::make_pair(
+            TransconvInitParam(1, 8, 1, 1, 1, 1, 3, 1, 2, 1, 1, 0, 1, 0, 1, 1),
+            TransconvRefParam{
+                {{SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{1, 1, 1, 1}, 1},
+                 {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{7, 1}), ngraph::Shape{2, 1, 2, 1}, 1},
+                 {SliceLayerParam(ngraph::Shape{6, 0}, ngraph::Shape{8, 1}), ngraph::Shape{3, 1, 2, 1}, 1}}}),
         // test8-2:
         std::make_pair(TransconvInitParam(1, 8, 1, 1, 2, 1, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{4, 1, 1, 1}, 2},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 1}), ngraph::Shape{6, 1, 1, 1}, 2},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{4, 1, 1, 1}, 2},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 1}), ngraph::Shape{6, 1, 1, 1}, 2},
                        }}),
         // test8-1-2:
         std::make_pair(TransconvInitParam(1, 8, 1, 2, 1, 2, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 2}), ngraph::Shape{2, 2, 1, 1}, 1},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 2}), ngraph::Shape{3, 2, 1, 1}, 1},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 2}), ngraph::Shape{2, 2, 1, 1}, 1},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 2}), ngraph::Shape{3, 2, 1, 1}, 1},
                        }}),
         // test8-2-2:
         std::make_pair(TransconvInitParam(1, 8, 1, 2, 2, 2, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 2}), ngraph::Shape{4, 2, 1, 1}, 2},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 2}), ngraph::Shape{6, 2, 1, 1}, 2},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 2}), ngraph::Shape{4, 2, 1, 1}, 2},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 2}), ngraph::Shape{6, 2, 1, 1}, 2},
                        }}),
         // test8-4-4:
         std::make_pair(TransconvInitParam(1, 8, 1, 4, 4, 4, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 4}), ngraph::Shape{8, 4, 1, 1}, 4},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 4}), ngraph::Shape{12, 4, 1, 1}, 4},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 4}), ngraph::Shape{8, 4, 1, 1}, 4},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 4}), ngraph::Shape{12, 4, 1, 1}, 4},
                        }}),
         // test8-8-8:
         std::make_pair(TransconvInitParam(1, 8, 1, 8, 8, 8, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 8}), ngraph::Shape{16, 8, 1, 1}, 8},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 8}), ngraph::Shape{24, 8, 1, 1}, 8},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 8}), ngraph::Shape{16, 8, 1, 1}, 8},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{8, 8}), ngraph::Shape{24, 8, 1, 1}, 8},
                        }}),
         // test16:
         std::make_pair(TransconvInitParam(1, 16, 1, 1, 1, 1, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{15, 1}), ngraph::Shape{3, 1, 1, 1}, 1},
-                           {SliceParam(ngraph::Shape{15, 0}, ngraph::Shape{16, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{15, 1}), ngraph::Shape{3, 1, 1, 1}, 1},
+                           {SliceLayerParam(ngraph::Shape{15, 0}, ngraph::Shape{16, 1}), ngraph::Shape{2, 1, 1, 1}, 1},
                        }}),
         // test16-2:
         std::make_pair(TransconvInitParam(1, 16, 1, 1, 2, 1, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{4, 1, 1, 1}, 2},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{15, 1}), ngraph::Shape{6, 1, 1, 1}, 2},
-                           {SliceParam(ngraph::Shape{15, 0}, ngraph::Shape{16, 1}), ngraph::Shape{4, 1, 1, 1}, 2},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 1}), ngraph::Shape{4, 1, 1, 1}, 2},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{15, 1}), ngraph::Shape{6, 1, 1, 1}, 2},
+                           {SliceLayerParam(ngraph::Shape{15, 0}, ngraph::Shape{16, 1}), ngraph::Shape{4, 1, 1, 1}, 2},
                        }}),
         // test16-2-2:
         std::make_pair(TransconvInitParam(1, 16, 1, 2, 2, 2, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 2}), ngraph::Shape{4, 2, 1, 1}, 2},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{15, 2}), ngraph::Shape{6, 2, 1, 1}, 2},
-                           {SliceParam(ngraph::Shape{15, 0}, ngraph::Shape{16, 2}), ngraph::Shape{4, 2, 1, 1}, 2},
+                       TransconvRefParam{{
+                           {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 2}), ngraph::Shape{4, 2, 1, 1}, 2},
+                           {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{15, 2}), ngraph::Shape{6, 2, 1, 1}, 2},
+                           {SliceLayerParam(ngraph::Shape{15, 0}, ngraph::Shape{16, 2}), ngraph::Shape{4, 2, 1, 1}, 2},
                        }}),
         // test19-64-64:
-        std::make_pair(TransconvInitParam(1, 19, 1, 64, 64, 64, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
-                       TranconvRefParam{{
-                           {SliceParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 64}), ngraph::Shape{128, 64, 1, 1}, 64},
-                           {SliceParam(ngraph::Shape{1, 0}, ngraph::Shape{18, 64}), ngraph::Shape{192, 64, 1, 1}, 64},
-                           {SliceParam(ngraph::Shape{18, 0}, ngraph::Shape{19, 64}), ngraph::Shape{128, 64, 1, 1}, 64},
-                       }})));
+        std::make_pair(
+            TransconvInitParam(1, 19, 1, 64, 64, 64, 3, 1, 3, 1, 1, 0, 1, 0, 1, 1),
+            TransconvRefParam{{
+                {SliceLayerParam(ngraph::Shape{0, 0}, ngraph::Shape{1, 64}), ngraph::Shape{128, 64, 1, 1}, 64},
+                {SliceLayerParam(ngraph::Shape{1, 0}, ngraph::Shape{18, 64}), ngraph::Shape{192, 64, 1, 1}, 64},
+                {SliceLayerParam(ngraph::Shape{18, 0}, ngraph::Shape{19, 64}), ngraph::Shape{128, 64, 1, 1}, 64},
+            }})));
