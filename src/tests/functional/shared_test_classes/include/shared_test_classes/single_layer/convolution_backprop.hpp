@@ -25,17 +25,18 @@ typedef std::tuple<
         ngraph::op::PadType,            // Padding type
         std::vector<ptrdiff_t>          // Output padding
 > convBackpropSpecificParams;
-typedef std::tuple<
-        convBackpropSpecificParams,
-        InferenceEngine::Precision,     // Net precision
-        InferenceEngine::Precision,     // Input precision
-        InferenceEngine::Precision,     // Output precision
-        InferenceEngine::Layout,        // Input layout
-        InferenceEngine::Layout,        // Output layout
-        InferenceEngine::SizeVector,    // Input shapes
-        InferenceEngine::SizeVector,    // Output shapes
-        LayerTestsUtils::TargetDevice   // Device name
-> convBackpropLayerTestParamsSet;
+typedef std::tuple<convBackpropSpecificParams,
+                   InferenceEngine::Precision,          // Net precision
+                   InferenceEngine::Precision,          // Input precision
+                   InferenceEngine::Precision,          // Output precision
+                   InferenceEngine::Layout,             // Input layout
+                   InferenceEngine::Layout,             // Output layout
+                   InferenceEngine::SizeVector,         // Input shapes
+                   InferenceEngine::SizeVector,         // Output shapes
+                   std::map<std::string, std::string>,  // Configuration
+                   LayerTestsUtils::TargetDevice        // Device name
+                   >
+    convBackpropLayerTestParamsSet;
 
 class ConvolutionBackpropLayerTest : public testing::WithParamInterface<convBackpropLayerTestParamsSet>,
                                          virtual public LayerTestsUtils::LayerTestsCommon {

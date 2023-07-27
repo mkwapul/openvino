@@ -13,8 +13,18 @@ std::string ConvolutionBackpropLayerTest::getTestCaseName(const testing::TestPar
     InferenceEngine::Layout inLayout, outLayout;
     InferenceEngine::SizeVector inputShapes;
     InferenceEngine::SizeVector outputShapes;
+    std::map<std::string, std::string> configuration;
     std::string targetDevice;
-    std::tie(convBackpropDataParams, netPrecision, inPrc, outPrc, inLayout, outLayout, inputShapes, outputShapes, targetDevice) = obj.param;
+    std::tie(convBackpropDataParams,
+             netPrecision,
+             inPrc,
+             outPrc,
+             inLayout,
+             outLayout,
+             inputShapes,
+             outputShapes,
+             configuration,
+             targetDevice) = obj.param;
     ngraph::op::PadType padType;
     InferenceEngine::SizeVector kernel, stride, dilation;
     std::vector<ptrdiff_t> padBegin, padEnd, outPadding;
@@ -37,6 +47,9 @@ std::string ConvolutionBackpropLayerTest::getTestCaseName(const testing::TestPar
     result << "outPRC=" << outPrc.name() << "_";
     result << "inL=" << inLayout << "_";
     result << "outL=" << outLayout << "_";
+    for (auto const& configItem : configuration) {
+        result << "_configItem=" << configItem.first << "_" << configItem.second;
+    }
     result << "trgDev=" << targetDevice;
     return result.str();
 }
@@ -45,8 +58,19 @@ void ConvolutionBackpropLayerTest::SetUp() {
     convBackpropSpecificParams convBackpropDataParams;
     std::vector<size_t> inputShape;
     std::vector<size_t> outputShape;
+    std::map<std::string, std::string> tempConfig;
     auto netPrecision = InferenceEngine::Precision::UNSPECIFIED;
-    std::tie(convBackpropDataParams, netPrecision, inPrc, outPrc, inLayout, outLayout, inputShape, outputShape, targetDevice) = this->GetParam();
+    std::tie(convBackpropDataParams,
+             netPrecision,
+             inPrc,
+             outPrc,
+             inLayout,
+             outLayout,
+             inputShape,
+             outputShape,
+             tempConfig,
+             targetDevice) = this->GetParam();
+    configuration.insert(tempConfig.begin(), tempConfig.end());
     ngraph::op::PadType padType;
     InferenceEngine::SizeVector kernel, stride, dilation;
     std::vector<ptrdiff_t> padBegin, padEnd, outPadding;
