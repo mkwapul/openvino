@@ -13,7 +13,7 @@
 #include <map>
 #include <memory>
 #include <ngraph/function.hpp>
-#include <ngraph/opsets/opset1.hpp>
+//#include <ngraph/opsets/opset1.hpp>
 #include <ngraph/opsets/opset11.hpp>
 #include <ngraph/pass/constant_folding.hpp>
 #include <ngraph/pass/manager.hpp>
@@ -153,7 +153,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
     auto output_padding = ov::CoordinateDiff{out_pad_h, out_pad_w};
 
     if (upstream[0].get_shape() != ov::Shape{param.N, param.H, param.W, param.C}) {
-        auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
+        auto input_4d = std::make_shared<ngraph::opset11::Reshape>(
             upstream[0],
             Constant::create(ngraph::element::i64, ov::Shape{4}, {param.N, param.H, param.W, param.C})->output(0),
             false);
@@ -184,7 +184,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
     for (uint32_t i = 0; i < new_shape.size(); i++) {
         num_elements *= new_shape[i];
     }
-    auto output_2d = std::make_shared<ngraph::opset1::Reshape>(
+    auto output_2d = std::make_shared<ngraph::opset11::Reshape>(
         upstream[0],
         Constant::create(ngraph::element::i64,
                          ov::Shape{2},
@@ -219,7 +219,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const Tr
     uint32_t out_pad_w = (param.W + pads_begin[1] + pads_end[1] - param.Kw) % strides[1];
     auto output_padding = ov::CoordinateDiff{out_pad_h, out_pad_w};
 
-    auto input_4d = std::make_shared<ngraph::opset1::Reshape>(
+    auto input_4d = std::make_shared<ngraph::opset11::Reshape>(
         upstrm,
         Constant::create(ngraph::element::i64, ov::Shape{4}, {param.N, param.H, param.W, param.C})->output(0),
         false);
@@ -236,7 +236,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const Tr
         std::tie(sliceParam, convKrnlShape, sliceOutChannels) = slice;
 
         auto upstrm_inloop =
-            std::make_shared<ngraph::opset1::Reshape>(
+            std::make_shared<ngraph::opset11::Reshape>(
                 upstrm,
                 Constant::create(ngraph::element::i64, ngraph::Shape{2}, {param.N * param.H, param.W * param.C})
                     ->output(0),
@@ -317,11 +317,11 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const Tr
     }
 
     if (sliceOutputs.size() > 0) {
-        auto new_concat = std::make_shared<ngraph::opset1::Concat>(sliceOutputs, 1);
+        auto new_concat = std::make_shared<ngraph::opset11::Concat>(sliceOutputs, 1);
         upstrm = new_concat->output(0);
     }
 
-    auto output = std::make_shared<ngraph::opset1::Reshape>(
+    auto output = std::make_shared<ngraph::opset11::Reshape>(
         upstrm,
         // use summed output from concat instead of hSumOut!!!
         Constant::create(ngraph::element::i64, ov::Shape{2}, ILS{1, hSumOut})->output(0),
