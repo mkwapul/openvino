@@ -13,7 +13,6 @@
 #include <map>
 #include <memory>
 #include <ngraph/function.hpp>
-//#include <ngraph/opsets/opset1.hpp>
 #include <ngraph/opsets/opset11.hpp>
 #include <ngraph/pass/constant_folding.hpp>
 #include <ngraph/pass/manager.hpp>
