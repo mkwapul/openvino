@@ -12,22 +12,6 @@ using namespace LayerTestsDefinitions;
 
 namespace {
 
-/*
-const std::vector<InferenceEngine::Precision> netPrecisions = {InferenceEngine::Precision::FP32,
-                                                               InferenceEngine::Precision::FP16};
-
-
-std::vector<convParams> params = {std::make_tuple(std::vector<size_t>{1, 32},  // InputShape
-                                                  std::vector<size_t>{1, 3},   // KernelShape
-                                                  1),                          // Stride
-                                  std::make_tuple(std::vector<size_t>{1, 64}, std::vector<size_t>{1, 5}, 1),
-                                  std::make_tuple(std::vector<size_t>{1, 256}, std::vector<size_t>{1, 9}, 2)};
-
-std::vector<size_t> inputChannels = {1};
-
-std::vector<size_t> outputChannels = {4, 8};
-*/
-
 const std::vector<std::map<std::string, std::string>> configs = {{{"GNA_DEVICE_MODE", "GNA_SW_EXACT"}},
                                                                  {{"GNA_DEVICE_MODE", "GNA_SW_FP32"}}};
 
@@ -40,7 +24,7 @@ const std::vector<size_t> numGroups = {2, 8, 16};
 const std::vector<std::vector<size_t>> emptyOutputShape = {{}};
 const std::vector<std::vector<ptrdiff_t>> emptyOutputPadding = {{}};
 
-/* ============= 1D GroupConvolution ============= */
+// ============= 1D GroupConvolution =============
 const std::vector<std::vector<size_t>> inputShapes1D = {{1, 16, 32}};
 
 const std::vector<std::vector<size_t>> kernels1D = {{1}, {3}};
