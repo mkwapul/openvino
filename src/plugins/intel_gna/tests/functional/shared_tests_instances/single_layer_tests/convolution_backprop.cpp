@@ -20,7 +20,6 @@ const std::vector<InferenceEngine::Precision> netPrecisions = {InferenceEngine::
                                                                InferenceEngine::Precision::I32};
 
 const std::vector<size_t> numOutChannels = {16, 32};
-const std::vector<size_t> numGroups = {2, 8, 16};
 const std::vector<std::vector<size_t>> emptyOutputShape = {{}};
 const std::vector<std::vector<ptrdiff_t>> emptyOutputPadding = {{}};
 
@@ -42,6 +41,35 @@ const auto groupConvBackpropData1DParams_ExplicitPadding =
                        ::testing::ValuesIn(numOutChannels),
                        ::testing::Values(ngraph::op::PadType::EXPLICIT),
                        ::testing::ValuesIn(emptyOutputPadding));
+
+/*
+const std::vector<InferenceEngine::Precision> netPrecisions = {InferenceEngine::Precision::FP32,
+                                                               InferenceEngine::Precision::FP16,
+                                                               InferenceEngine::Precision::I32};
+
+const std::vector<size_t> numOutChannels = {1, 16, 32};
+const std::vector<std::vector<size_t>> emptyOutputShape = {{}};
+const std::vector<std::vector<ptrdiff_t>> emptyOutputPadding = {{}};
+
+// ============= 1D GroupConvolution =============
+const std::vector<std::vector<size_t>> inputShapes1D = {{1, 1, 7, 1}, {1, 16, 32}};
+
+const std::vector<std::vector<size_t>> kernels1D = {{4}, {1} ,{3}};
+const std::vector<std::vector<size_t>> strides1D = {{3}, {1}};
+const std::vector<std::vector<ptrdiff_t>> padBegins1D = {{1}, {0}};
+const std::vector<std::vector<ptrdiff_t>> padEnds1D = {{1}, {0}};
+const std::vector<std::vector<size_t>> dilations1D = {{1}};
+
+const auto groupConvBackpropData1DParams_ExplicitPadding =
+    ::testing::Combine(::testing::ValuesIn(kernels1D),
+                       ::testing::ValuesIn(strides1D),
+                       ::testing::ValuesIn(padBegins1D),
+                       ::testing::ValuesIn(padEnds1D),
+                       ::testing::ValuesIn(dilations1D),
+                       ::testing::ValuesIn(numOutChannels),
+                       ::testing::Values(ngraph::op::PadType::EXPLICIT),
+                       ::testing::ValuesIn(emptyOutputPadding));
+*/
 
 INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropData1D_ExplicitPadding,
                          ConvolutionBackpropLayerTest,
