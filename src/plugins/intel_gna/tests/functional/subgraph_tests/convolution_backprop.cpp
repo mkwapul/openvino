@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#include <ngraph/opsets/opset11.hpp>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -34,8 +35,6 @@ public:
 
 protected:
     void SetUp() override;
-    // TODO: remove
-    // std::string pluginTypeNode;
 };
 
 std::string ConvolutionBackpropSubgraphTest::getTestCaseName(
@@ -85,7 +84,15 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
     ngraph::op::PadType paddingType;
 
     auto ngPrc = FuncTestUtils::PrecisionUtils::convertIE2nGraphPrc(netPrecision);
-    auto params = ngraph::builder::makeParams(ngPrc, {inputShape});
+    // auto params = ngraph::builder::makeParams(ngPrc, {inputShape});
+
+    // TODO: this is without reshape layers (ie 4d input)
+    // auto params = ngraph::builder::makeParams(ngPrc, {{inputShape[0], inputShape[2], inputShape[3], inputShape[1]}});
+    // // HCHW -> NHWC - TODO: do it more gently.
+
+    auto params =
+        ngraph::builder::makeParams(ngPrc, {{1, inputShape[0] * inputShape[1] * inputShape[2] * inputShape[3]}});
+
     auto paramOuts =
         ngraph::helpers::convert2OutputVector(ngraph::helpers::castOps2Nodes<ngraph::op::Parameter>(params));
 
@@ -93,7 +100,20 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
 
     std::tie(kernelSize, strides, padBegin, padEnd, dilation, numOutChannels, paddingType) = convParams;
 
-    auto convbpd = ngraph::builder::makeConvolutionBackpropData(paramOuts[0],
+    auto reshape_before = std::make_shared<ngraph::opset11::Reshape>(
+        paramOuts[0],
+        ngraph::opset11::Constant::create(ngraph::element::i64,
+                                          ov::Shape{4},
+                                          {inputShape[0], inputShape[2], inputShape[3], inputShape[1]})
+            ->output(0),  // HCHW -> NHWC - TODO: do it more gently.
+        false);
+
+    auto transpose_before = std::make_shared<ngraph::opset11::Transpose>(
+                                reshape_before->output(0),
+                                ngraph::opset11::Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 3, 1, 2}))
+                                ->output(0);
+
+    auto convbpd = ngraph::builder::makeConvolutionBackpropData(transpose_before,
                                                                 ngraph::element::f32,
                                                                 kernelSize,
                                                                 strides,
@@ -103,8 +123,28 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
                                                                 paddingType,
                                                                 numOutChannels);
 
-    ngraph::ResultVector results{std::make_shared<ngraph::opset4::Result>(convbpd)};
-    function = std::make_shared<ngraph::Function>(results, params, "convolutionBackpropData");
+    auto transpose_after = std::make_shared<ngraph::opset11::Transpose>(
+        convbpd->output(0),
+        ngraph::opset11::Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 2, 3, 1}));
+    //->output(0);
+
+    auto new_shape = transpose_after->output(0).get_shape();
+    std::size_t acc = std::accumulate(new_shape.begin(), new_shape.end(), 1, std::multiplies<std::size_t>());
+    auto reshape_after =
+        std::make_shared<ngraph::opset11::Reshape>(transpose_after->output(0),
+                                                   ngraph::opset11::Constant::create(ngraph::element::i64,
+                                                                                     ov::Shape{2},
+                                                                                     std::vector<std::size_t>{{
+                                                                                         1,
+                                                                                         acc,
+                                                                                     }})
+                                                       ->output(0),
+                                                   false);
+
+    // auto result = std::make_shared<ngraph::opset11::Result>(reshape_after);
+
+    ngraph::ResultVector result{std::make_shared<ngraph::opset11::Result>(reshape_after)};
+    function = std::make_shared<ngraph::Function>(result, params, "convolutionBackpropData");
 }
 
 TEST_P(ConvolutionBackpropSubgraphTest, CompareWithRefs) {
@@ -113,21 +153,23 @@ TEST_P(ConvolutionBackpropSubgraphTest, CompareWithRefs) {
     // CheckPluginRelatedResults(executableNetwork, pluginTypeNode);
 };
 
-const std::vector<std::map<std::string, std::string>> configs = {{{"GNA_DEVICE_MODE", "GNA_SW_EXACT"}},
-                                                                 {{"GNA_DEVICE_MODE", "GNA_SW_FP32"}}};
+// TODO, mkwap: pass exec target in more gentle way.
+const std::vector<std::map<std::string, std::string>> configs = {
+    {{"GNA_DEVICE_MODE", "GNA_SW_EXACT"}, {"GNA_EXEC_TARGET", "GNA_TARGET_3_5"}},
+    {{"GNA_DEVICE_MODE", "GNA_SW_FP32"}, {"GNA_EXEC_TARGET", "GNA_TARGET_3_5"}}};
 
 const std::vector<InferenceEngine::Precision> netPrecisions = {InferenceEngine::Precision::FP32/*,
     InferenceEngine::Precision::FP16,
     InferenceEngine::Precision::I32*/};
 
 const ngraph::op::PadType paddingType{ngraph::op::PadType::EXPLICIT};
-const size_t numOutChannels{32};
+const size_t numOutChannels{1};
 
-const InferenceEngine::SizeVector inputShape2D{1, 64, 16, 16};
-const InferenceEngine::SizeVector kernelSize2D{3, 3};
-const InferenceEngine::SizeVector strides2D{2, 2};
-const std::vector<ptrdiff_t> padBegin2D{1, 1};
-const std::vector<ptrdiff_t> padEnd2D{1, 1};
+const InferenceEngine::SizeVector inputShape2D{1, 1, 7, 1};
+const InferenceEngine::SizeVector kernelSize2D{3, 1};
+const InferenceEngine::SizeVector strides2D{3, 1};
+const std::vector<ptrdiff_t> padBegin2D{1, 0};
+const std::vector<ptrdiff_t> padEnd2D{1, 0};
 const InferenceEngine::SizeVector dilation2D{1, 1};
 auto convParams2D =
     convBackPropParams{kernelSize2D, strides2D, padBegin2D, padEnd2D, dilation2D, numOutChannels, paddingType};
