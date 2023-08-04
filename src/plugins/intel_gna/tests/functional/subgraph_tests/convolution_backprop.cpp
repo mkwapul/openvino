@@ -35,6 +35,7 @@ public:
 
 protected:
     void SetUp() override;
+    InferenceEngine::Blob::Ptr GenerateInput(const InferenceEngine::InputInfo& inputInfo) const override;
 };
 
 std::string ConvolutionBackpropSubgraphTest::getTestCaseName(
@@ -69,6 +70,11 @@ std::string ConvolutionBackpropSubgraphTest::getTestCaseName(
 }
 
 using namespace ov::opset11;
+
+InferenceEngine::Blob::Ptr ConvolutionBackpropSubgraphTest::GenerateInput(
+    const InferenceEngine::InputInfo& info) const {
+    return FuncTestUtils::createAndFillBlob(info.getTensorDesc(), 0, 1, 4);
+}
 
 void ConvolutionBackpropSubgraphTest::SetUp() {
     targetDevice = CommonTestUtils::DEVICE_GNA;
