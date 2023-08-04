@@ -95,25 +95,29 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
     auto params =
         ngraph::builder::makeParams(ngPrc, {{1, inputShape[0] * inputShape[1] * inputShape[2] * inputShape[3]}});
 
-    auto paramOuts =
-        ngraph::helpers::convert2OutputVector(ngraph::helpers::castOps2Nodes<ngraph::op::Parameter>(params));
+    // TODO: based on src/plugins/intel_gna/tests/functional/pass_tests/broadcast_const_with_fq.cpp
+    // auto fakeQuantizeForReshape = ngraph::builder::makeFakeQuantize(params[0], ngPrc, 65536, {},
+    // {-10.00030517578125}, {10.0}, {-10.00030517578125}, {10.0});
+
+    // auto paramOuts =
+    // ngraph::helpers::convert2OutputVector(ngraph::helpers::castOps2Nodes<ngraph::op::Parameter>(params));
 
     configuration.insert(tempConfig.begin(), tempConfig.end());
 
     std::tie(kernelSize, strides, padBegin, padEnd, dilation, numOutChannels, paddingType) = convParams;
 
-    auto reshape_before = std::make_shared<ngraph::opset11::Reshape>(
-        paramOuts[0],
-        ngraph::opset11::Constant::create(ngraph::element::i64,
-                                          ov::Shape{4},
-                                          {inputShape[0], inputShape[2], inputShape[3], inputShape[1]})
-            ->output(0),  // HCHW -> NHWC - TODO: do it more gently.
-        false);
+    auto reshape_before =
+        std::make_shared<Reshape>(params[0],
+                                  Constant::create(ngraph::element::i64,
+                                                   ov::Shape{4},
+                                                   {inputShape[0], inputShape[2], inputShape[3], inputShape[1]})
+                                      ->output(0),  // HCHW -> NHWC - TODO: do it more gently.
+                                  false);
 
-    auto transpose_before = std::make_shared<ngraph::opset11::Transpose>(
-                                reshape_before->output(0),
-                                ngraph::opset11::Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 3, 1, 2}))
-                                ->output(0);
+    auto transpose_before =
+        std::make_shared<Transpose>(reshape_before->output(0),
+                                    Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 3, 1, 2}))
+            ->output(0);
 
     auto convbpd = ngraph::builder::makeConvolutionBackpropData(transpose_before,
                                                                 ngraph::element::f32,
@@ -125,21 +129,23 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
                                                                 paddingType,
                                                                 numOutChannels);
 
-    auto transpose_after = std::make_shared<ngraph::opset11::Transpose>(
-        convbpd->output(0),
-        ngraph::opset11::Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 2, 3, 1}));
+    // auto fakeQuantizeAfterConvBPD = ngraph::builder::makeFakeQuantize(convbpd->output(0), ngPrc, 65536, {},
+    // {-99.74967956542969}, {99.74663543701172}, {-99.74967956542969}, {99.74663543701172});
+
+    auto transpose_after =
+        std::make_shared<Transpose>(convbpd->output(0),
+                                    Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 2, 3, 1}));
     //->output(0);
 
     auto new_shape = transpose_after->output(0).get_shape();
     std::size_t acc = std::accumulate(new_shape.begin(), new_shape.end(), 1, std::multiplies<std::size_t>());
-    auto reshape_after =
-        std::make_shared<ngraph::opset11::Reshape>(transpose_after->output(0),
-                                                   ngraph::opset11::Constant::create(ngraph::element::i64,
-                                                                                     ov::Shape{2},
-                                                                                     std::vector<std::size_t>{{
-                                                                                         1,
-                                                                                         acc,
-                                                                                     }})
+    auto reshape_after = std::make_shared<Reshape>(transpose_after->output(0),
+                                                   Constant::create(ngraph::element::i64,
+                                                                    ov::Shape{2},
+                                                                    std::vector<std::size_t>{{
+                                                                        1,
+                                                                        acc,
+                                                                    }})
                                                        ->output(0),
                                                    false);
 
