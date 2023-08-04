@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include <ngraph/opsets/opset11.hpp>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include "ngraph_functions/builders.hpp"
 #include "ngraph_functions/utils/ngraph_helpers.hpp"
+#include "openvino/opsets/opset11.hpp"
 #include "shared_test_classes/base/layer_test_utils.hpp"
 
 namespace SubgraphTestsDefinitions {
@@ -67,6 +67,8 @@ std::string ConvolutionBackpropSubgraphTest::getTestCaseName(
 
     return result.str();
 }
+
+using namespace ov::opset11;
 
 void ConvolutionBackpropSubgraphTest::SetUp() {
     targetDevice = CommonTestUtils::DEVICE_GNA;
@@ -141,9 +143,9 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
                                                        ->output(0),
                                                    false);
 
-    // auto result = std::make_shared<ngraph::opset11::Result>(reshape_after);
+    // auto result = std::make_shared<Result>(reshape_after);
 
-    ngraph::ResultVector result{std::make_shared<ngraph::opset11::Result>(reshape_after)};
+    ngraph::ResultVector result{std::make_shared<Result>(reshape_after)};
     function = std::make_shared<ngraph::Function>(result, params, "convolutionBackpropData");
 }
 
