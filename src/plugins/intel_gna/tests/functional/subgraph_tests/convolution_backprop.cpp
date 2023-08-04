@@ -198,4 +198,40 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropData2D,
                          params2D,
                          ConvolutionBackpropSubgraphTest::getTestCaseName);
 
+auto convParamsTest8 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+
+const auto paramsTest8 = ::testing::Combine(::testing::Values(convParamsTest8),
+                                            ::testing::ValuesIn(netPrecisions),
+                                            ::testing::Values(InferenceEngine::SizeVector{1, 1, 8, 1}),
+                                            ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest8,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest8s = convBackPropParams{{3, 1}, {2, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+
+const auto paramsTest8s = ::testing::Combine(::testing::Values(convParamsTest8s),
+                                             ::testing::ValuesIn(netPrecisions),
+                                             ::testing::Values(InferenceEngine::SizeVector{1, 1, 8, 1}),
+                                             ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8s,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest8s,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest8_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+
+const auto paramsTest8_2 = ::testing::Combine(::testing::Values(convParamsTest8_2),
+                                              ::testing::ValuesIn(netPrecisions),
+                                              ::testing::Values(InferenceEngine::SizeVector{1, 1, 8, 1}),
+                                              ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest8_2,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
 }  // namespace SubgraphTestsDefinitions
