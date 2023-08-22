@@ -234,4 +234,28 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2,
                          paramsTest8_2,
                          ConvolutionBackpropSubgraphTest::getTestCaseName);
 
+auto convParamsTest16_2_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+
+const auto paramsTest16_2_2 = ::testing::Combine(::testing::Values(convParamsTest16_2_2),
+                                                 ::testing::ValuesIn(netPrecisions),
+                                                 ::testing::Values(InferenceEngine::SizeVector{1, 2, 16, 1}),
+                                                 ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16_2_2,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest16_2_2,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest19_64_64 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {64}, paddingType};
+
+const auto paramsTest19_64_64 = ::testing::Combine(::testing::Values(convParamsTest19_64_64),
+                                                   ::testing::ValuesIn(netPrecisions),
+                                                   ::testing::Values(InferenceEngine::SizeVector{1, 64, 19, 1}),
+                                                   ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest19_64_64,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest19_64_64,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
 }  // namespace SubgraphTestsDefinitions
