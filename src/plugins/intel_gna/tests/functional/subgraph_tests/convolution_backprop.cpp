@@ -185,17 +185,17 @@ const InferenceEngine::SizeVector strides2D{3, 1};
 const std::vector<ptrdiff_t> padBegin2D{1, 0};
 const std::vector<ptrdiff_t> padEnd2D{1, 0};
 const InferenceEngine::SizeVector dilation2D{1, 1};
-auto convParams2D =
+auto convParamsTest7 =
     convBackPropParams{kernelSize2D, strides2D, padBegin2D, padEnd2D, dilation2D, numOutChannels, paddingType};
 
-const auto params2D = ::testing::Combine(::testing::Values(convParams2D),
-                                         ::testing::ValuesIn(netPrecisions),
-                                         ::testing::Values(inputShape2D),
-                                         ::testing::ValuesIn(configs));
+const auto paramsTest7 = ::testing::Combine(::testing::Values(convParamsTest7),
+                                            ::testing::ValuesIn(netPrecisions),
+                                            ::testing::Values(inputShape2D),
+                                            ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropData2D,
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest7,
                          ConvolutionBackpropSubgraphTest,
-                         params2D,
+                         paramsTest7,
                          ConvolutionBackpropSubgraphTest::getTestCaseName);
 
 auto convParamsTest8 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
@@ -232,6 +232,78 @@ const auto paramsTest8_2 = ::testing::Combine(::testing::Values(convParamsTest8_
 INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2,
                          ConvolutionBackpropSubgraphTest,
                          paramsTest8_2,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest8_1_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+
+const auto paramsTest8_1_2 = ::testing::Combine(::testing::Values(convParamsTest8_1_2),
+                                                ::testing::ValuesIn(netPrecisions),
+                                                ::testing::Values(InferenceEngine::SizeVector{1, 2, 8, 1}),
+                                                ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_1_2,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest8_1_2,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest8_2_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+
+const auto paramsTest8_2_2 = ::testing::Combine(::testing::Values(convParamsTest8_2_2),
+                                                ::testing::ValuesIn(netPrecisions),
+                                                ::testing::Values(InferenceEngine::SizeVector{1, 2, 8, 1}),
+                                                ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2_2,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest8_2_2,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest8_4_4 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {4}, paddingType};
+
+const auto paramsTest8_4_4 = ::testing::Combine(::testing::Values(convParamsTest8_4_4),
+                                                ::testing::ValuesIn(netPrecisions),
+                                                ::testing::Values(InferenceEngine::SizeVector{1, 4, 8, 1}),
+                                                ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_4_4,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest8_2_2,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest8_8_8 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {8}, paddingType};
+
+const auto paramsTest8_8_8 = ::testing::Combine(::testing::Values(convParamsTest8_8_8),
+                                                ::testing::ValuesIn(netPrecisions),
+                                                ::testing::Values(InferenceEngine::SizeVector{1, 8, 8, 1}),
+                                                ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_8_8,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest8_2_2,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest16 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+
+const auto paramsTest16 = ::testing::Combine(::testing::Values(convParamsTest16),
+                                             ::testing::ValuesIn(netPrecisions),
+                                             ::testing::Values(InferenceEngine::SizeVector{1, 1, 16, 1}),
+                                             ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest16,
+                         ConvolutionBackpropSubgraphTest::getTestCaseName);
+
+auto convParamsTest16_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+
+const auto paramsTest16_2 = ::testing::Combine(::testing::Values(convParamsTest16_2),
+                                               ::testing::ValuesIn(netPrecisions),
+                                               ::testing::Values(InferenceEngine::SizeVector{1, 1, 16, 1}),
+                                               ::testing::ValuesIn(configs));
+
+INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16_2,
+                         ConvolutionBackpropSubgraphTest,
+                         paramsTest16_2,
                          ConvolutionBackpropSubgraphTest::getTestCaseName);
 
 auto convParamsTest16_2_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
