@@ -7,6 +7,7 @@
 #include "openvino/core/node_vector.hpp"
 #include "openvino/core/shape.hpp"
 #include "openvino/opsets/opset11.hpp"
+#include "utils/transformation_helper.hpp"
 
 #define PAD_VALUE ((size_t)-1)
 
@@ -266,6 +267,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
             continue;
         }
         auto add_after = std::dynamic_pointer_cast<Add>(children.begin()->get_node()->shared_from_this());
+        auto fq_after = std::dynamic_pointer_cast<FakeQuantize>(children.begin()->get_node()->shared_from_this());
         auto prelu_after = std::dynamic_pointer_cast<PRelu>(children.begin()->get_node()->shared_from_this());
         auto relu_after = std::dynamic_pointer_cast<Relu>(children.begin()->get_node()->shared_from_this());
         auto sigmoid_after = std::dynamic_pointer_cast<Sigmoid>(children.begin()->get_node()->shared_from_this());
@@ -277,6 +279,7 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
             if (add_children.size() != 1) {
                 continue;
             }
+            fq_after = std::dynamic_pointer_cast<FakeQuantize>(add_children.begin()->get_node()->shared_from_this());
             prelu_after = std::dynamic_pointer_cast<PRelu>(add_children.begin()->get_node()->shared_from_this());
             relu_after = std::dynamic_pointer_cast<Relu>(add_children.begin()->get_node()->shared_from_this());
             sigmoid_after = std::dynamic_pointer_cast<Sigmoid>(add_children.begin()->get_node()->shared_from_this());
@@ -284,6 +287,18 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
             transpose_after =
                 std::dynamic_pointer_cast<Transpose>(add_children.begin()->get_node()->shared_from_this());
             reshape_after = std::dynamic_pointer_cast<Reshape>(add_children.begin()->get_node()->shared_from_this());
+        }
+        if (fq_after != nullptr) {
+            auto fq_children = fq_after->output(0).get_target_inputs();
+            if (fq_children.size() != 1) {
+                continue;
+            }
+            prelu_after = std::dynamic_pointer_cast<PRelu>(fq_children.begin()->get_node()->shared_from_this());
+            relu_after = std::dynamic_pointer_cast<Relu>(fq_children.begin()->get_node()->shared_from_this());
+            sigmoid_after = std::dynamic_pointer_cast<Sigmoid>(fq_children.begin()->get_node()->shared_from_this());
+            tanh_after = std::dynamic_pointer_cast<Tanh>(fq_children.begin()->get_node()->shared_from_this());
+            transpose_after = std::dynamic_pointer_cast<Transpose>(fq_children.begin()->get_node()->shared_from_this());
+            reshape_after = std::dynamic_pointer_cast<Reshape>(fq_children.begin()->get_node()->shared_from_this());
         }
         if ((transpose_after == nullptr) && (reshape_after == nullptr)) {
             OutputVector upstream;
@@ -515,6 +530,9 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                         OutputVector upstream;
                         upstream.push_back(new_add->output(0));
                         InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                        if (fq_after) {
+                            upstream.push_back(helper::InsertFQLayer(fq_after, new_add)->output(0));
+                        }
                         new_transpose = std::make_shared<ov::op::v1::Transpose>(
                             upstream[0],
                             Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
@@ -533,6 +551,9 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                     OutputVector upstream;
                     upstream.push_back(new_conv->output(0));
                     InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                    if (fq_after) {
+                        upstream[0] = helper::InsertFQLayer(fq_after, new_conv)->output(0);
+                    }
                     new_transpose = std::make_shared<ov::op::v1::Transpose>(
                         upstream[0],
                         Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
@@ -682,6 +703,9 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                         OutputVector upstream;
                         upstream.push_back(new_add->output(0));
                         InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                        if (fq_after) {
+                            upstream.push_back(helper::InsertFQLayer(fq_after, new_add)->output(0));
+                        }
                         new_transpose = std::make_shared<ov::op::v1::Transpose>(
                             upstream[0],
                             Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
@@ -700,6 +724,9 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                     OutputVector upstream;
                     upstream.push_back(new_conv->output(0));
                     InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                    if (fq_after) {
+                        upstream.push_back(helper::InsertFQLayer(fq_after, new_conv)->output(0));
+                    }
                     new_transpose = std::make_shared<ov::op::v1::Transpose>(
                         upstream[0],
                         Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
@@ -862,6 +889,9 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                         OutputVector upstream;
                         upstream.push_back(new_add->output(0));
                         InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                        if (fq_after) {
+                            upstream.push_back(helper::InsertFQLayer(fq_after, new_add)->output(0));
+                        }
                         new_transpose = std::make_shared<ov::op::v1::Transpose>(
                             upstream[0],
                             Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
@@ -900,6 +930,9 @@ bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::M
                     OutputVector upstream;
                     upstream.push_back(new_conv->output(0));
                     InsertActivation(upstream, prelu_after, relu_after, sigmoid_after, tanh_after);
+                    if (fq_after) {
+                        upstream.push_back(helper::InsertFQLayer(fq_after, new_conv)->output(0));
+                    }
                     new_transpose = std::make_shared<ov::op::v1::Transpose>(
                         upstream[0],
                         Constant::create(element::Type_t::i64, Shape{4}, {0, 2, 3, 1}));
