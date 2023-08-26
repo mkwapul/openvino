@@ -35,7 +35,8 @@ public:
 
 protected:
     void SetUp() override;
-    InferenceEngine::Blob::Ptr GenerateInput(const InferenceEngine::InputInfo& inputInfo) const override;
+    // TODO: remove
+    // InferenceEngine::Blob::Ptr GenerateInput(const InferenceEngine::InputInfo& inputInfo) const override;
 };
 
 std::string ConvolutionBackpropSubgraphTest::getTestCaseName(
@@ -71,10 +72,12 @@ std::string ConvolutionBackpropSubgraphTest::getTestCaseName(
 
 using namespace ov::opset11;
 
+/* TODO: remove
 InferenceEngine::Blob::Ptr ConvolutionBackpropSubgraphTest::GenerateInput(
     const InferenceEngine::InputInfo& info) const {
     return FuncTestUtils::createAndFillBlob(info.getTensorDesc(), 0, 1, 4);
 }
+*/
 
 void ConvolutionBackpropSubgraphTest::SetUp() {
     targetDevice = CommonTestUtils::DEVICE_GNA;
@@ -92,33 +95,29 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
     ngraph::op::PadType paddingType;
 
     auto ngPrc = FuncTestUtils::PrecisionUtils::convertIE2nGraphPrc(netPrecision);
-    // auto params = ngraph::builder::makeParams(ngPrc, {inputShape});
-
-    // TODO: this is without reshape layers (ie 4d input)
-    // auto params = ngraph::builder::makeParams(ngPrc, {{inputShape[0], inputShape[2], inputShape[3], inputShape[1]}});
-    // // HCHW -> NHWC - TODO: do it more gently.
 
     auto params =
         ngraph::builder::makeParams(ngPrc, {{1, inputShape[0] * inputShape[1] * inputShape[2] * inputShape[3]}});
 
     // TODO: based on src/plugins/intel_gna/tests/functional/pass_tests/broadcast_const_with_fq.cpp
-    // auto fakeQuantizeForReshape = ngraph::builder::makeFakeQuantize(params[0], ngPrc, 65536, {},
-    // {-10.00030517578125}, {10.0}, {-10.00030517578125}, {10.0});
-
-    // auto paramOuts =
-    // ngraph::helpers::convert2OutputVector(ngraph::helpers::castOps2Nodes<ngraph::op::Parameter>(params));
-
-    configuration.insert(tempConfig.begin(), tempConfig.end());
+    auto fakeQuantizeForReshape = ngraph::builder::makeFakeQuantize(params[0],
+                                                                    ngPrc,
+                                                                    65536,
+                                                                    {},
+                                                                    {-10.00030517578125},
+                                                                    {10.0},
+                                                                    {-10.00030517578125},
+                                                                    {10.0});
 
     std::tie(kernelSize, strides, padBegin, padEnd, dilation, numOutChannels, paddingType) = convParams;
 
-    auto reshape_before =
-        std::make_shared<Reshape>(params[0],
-                                  Constant::create(ngraph::element::i64,
-                                                   ov::Shape{4},
-                                                   {inputShape[0], inputShape[2], inputShape[3], inputShape[1]})
-                                      ->output(0),  // HCHW -> NHWC - TODO: do it more gently.
-                                  false);
+    auto reshape_before = std::make_shared<Reshape>(  // params[0],
+        fakeQuantizeForReshape->output(0),
+        Constant::create(ngraph::element::i64,
+                         ov::Shape{4},
+                         {inputShape[0], inputShape[2], inputShape[3], inputShape[1]})
+            ->output(0),  // HCHW -> NHWC - TODO: do it more gently.
+        false);
 
     auto transpose_before =
         std::make_shared<Transpose>(reshape_before->output(0),
@@ -135,12 +134,18 @@ void ConvolutionBackpropSubgraphTest::SetUp() {
                                                                 paddingType,
                                                                 numOutChannels);
 
-    // auto fakeQuantizeAfterConvBPD = ngraph::builder::makeFakeQuantize(convbpd->output(0), ngPrc, 65536, {},
-    // {-99.74967956542969}, {99.74663543701172}, {-99.74967956542969}, {99.74663543701172});
+    auto fakeQuantizeAfterConvBPD = ngraph::builder::makeFakeQuantize(convbpd->output(0),
+                                                                      ngPrc,
+                                                                      65536,
+                                                                      {},
+                                                                      {-99.74967956542969},
+                                                                      {99.74663543701172},
+                                                                      {-99.74967956542969},
+                                                                      {99.74663543701172});
 
-    auto transpose_after =
-        std::make_shared<Transpose>(convbpd->output(0),
-                                    Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 2, 3, 1}));
+    auto transpose_after = std::make_shared<Transpose>(  // convbpd->output(0),
+        fakeQuantizeAfterConvBPD->output(0),
+        Constant::create(ov::element::Type_t::i64, ov::Shape{4}, {0, 2, 3, 1}));
     //->output(0);
 
     auto new_shape = transpose_after->output(0).get_shape();
