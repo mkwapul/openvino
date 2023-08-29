@@ -272,7 +272,7 @@ const auto paramsTest8_4_4 = ::testing::Combine(::testing::Values(convParamsTest
 
 INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_4_4,
                          ConvolutionBackpropSubgraphTest,
-                         paramsTest8_2_2,
+                         paramsTest8_4_4,
                          ConvolutionBackpropSubgraphTest::getTestCaseName);
 
 auto convParamsTest8_8_8 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {8}, paddingType};
@@ -284,7 +284,7 @@ const auto paramsTest8_8_8 = ::testing::Combine(::testing::Values(convParamsTest
 
 INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_8_8,
                          ConvolutionBackpropSubgraphTest,
-                         paramsTest8_2_2,
+                         paramsTest8_8_8,
                          ConvolutionBackpropSubgraphTest::getTestCaseName);
 
 auto convParamsTest16 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
