@@ -91,20 +91,40 @@ function make_ref_arks_GNA() {
 
 function speech_sample_GNA() {
     echo -e "\n==== [`date`] ${FUNCNAME[0]} START"
-    speech_sample -m ./test7_factorized.xml -i ./test7_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test7_factorized_mkldnn.ark
-    speech_sample -m ./test8_factorized.xml -i ./test8_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8_factorized_mkldnn.ark
-    speech_sample -m ./test8s_factorized.xml -i ./test8_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8s_factorized_mkldnn.ark
-    speech_sample -m ./test8-2_factorized.xml -i ./test8_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-2_factorized_mkldnn.ark
-    speech_sample -m ./test8-1-2_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-1-2_factorized_mkldnn.ark
-    speech_sample -m ./test8-2-2_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-2-2_factorized_mkldnn.ark
-    #speech_sample -m ./test8-2-2-bias_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-2-2-bias_factorized_mkldnn.ark
-    speech_sample -m ./test8-4-4_factorized.xml -i ./test32_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-4-4_factorized_mkldnn.ark
-    speech_sample -m ./test8-8-8_factorized.xml -i ./test64_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-8-8_factorized_mkldnn.ark
-    speech_sample -m ./test16_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test16_factorized_mkldnn.ark
-    speech_sample -m ./test16-2_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test16-2_factorized_mkldnn.ark
-    speech_sample -m ./test16-2-2_factorized.xml -i ./test32_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test16-2-2_factorized_mkldnn.ark
-    speech_sample -m ./test19-64-64_factorized.xml -i ./convtrans_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test19-64-64_factorized_mkldnn.ark
-    #speech_sample -m ./convtrans_factorized.xml -i ./convtrans_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r convtrans_factorized_mkldnn.ark
+    speech_sample -m ./test7_factorized.xml -i ./test7_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test7_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8_factorized.xml -i ./test8_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8s_factorized.xml -i ./test8_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8s_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-2_factorized.xml -i ./test8_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-2_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-1-2_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-1-2_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-2-2_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-2-2_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    #speech_sample -m ./test8-2-2-bias_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-2-2-bias_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-4-4_factorized.xml -i ./test32_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-4-4_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-8-8_factorized.xml -i ./test64_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test8-8-8_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test16_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test16_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test16-2_factorized.xml -i ./test16_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test16-2_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test16-2-2_factorized.xml -i ./test32_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test16-2-2_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test19-64-64_factorized.xml -i ./convtrans_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r test19-64-64_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    #speech_sample -m ./convtrans_factorized.xml -i ./convtrans_input.ark -d GNA_SW_EXACT -exec_target GNA_TARGET_3_5 -r convtrans_factorized_mkldnn.ark | ~/scripts/printErrorPerc.awk
+    echo "==== [`date`] ${FUNCNAME[0]} END"
+}
+
+function speech_sample_CPU() {
+    #based on make_ref_arks_GNA, but -r param moved to dev null
+    echo -e "\n==== [`date`] ${FUNCNAME[0]} START"
+    speech_sample -m ./test7_factorized.xml -i ./test7_input.ark -d CPU -r test7_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8_factorized.xml -i ./test8_input.ark -d CPU -r test8_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8s_factorized.xml -i ./test8_input.ark -d CPU -r test8s_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-2_factorized.xml -i ./test8_input.ark -d CPU -r test8-2_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-1-2_factorized.xml -i ./test16_input.ark -d CPU -r test8-1-2_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-2-2_factorized.xml -i ./test16_input.ark -d CPU -r test8-2-2_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    #speech_sample -m ./test8-2-2-bias_factorized.xml -i ./test16_input.ark -d CPU -r test8-2-2-bias_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-4-4_factorized.xml -i ./test32_input.ark -d CPU -r test8-4-4_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test8-8-8_factorized.xml -i ./test64_input.ark -d CPU -r test8-8-8_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test16_factorized.xml -i ./test16_input.ark -d CPU -r test16_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test16-2_factorized.xml -i ./test16_input.ark -d CPU -r test16-2_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test16-2-2_factorized.xml -i ./test32_input.ark -d CPU -r test16-2-2_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    speech_sample -m ./test19-64-64_factorized.xml -i ./convtrans_input.ark -d CPU -r test19-64-64_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
+    #speech_sample -m ./convtrans_factorized.xml -i ./convtrans_input.ark -d CPU -r convtrans_mkldnn.ark -o /tmp/devnull.ark | ~/scripts/printErrorPerc.awk
     echo "==== [`date`] ${FUNCNAME[0]} END"
 }
 
@@ -113,4 +133,5 @@ function speech_sample_GNA() {
 #run_ngraph_tool
 #make_ref_arks_CPU
 #make_ref_arks_GNA
-speech_sample_GNA
+#speech_sample_GNA
+speech_sample_CPU
