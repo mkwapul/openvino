@@ -72,7 +72,7 @@ std::string DecomposeTransConvTest::getTestCaseName(const testing::TestParamInfo
 using namespace ov::opset11;
 
 /* TODO: remove
-InferenceEngine::Blob::Ptr ConvolutionBackpropSubgraphTest::GenerateInput(
+InferenceEngine::Blob::Ptr DecomposeTransConvTest::GenerateInput(
     const InferenceEngine::InputInfo& info) const {
     return FuncTestUtils::createAndFillBlob(info.getTensorDesc(), 0, 1, 4);
 }
