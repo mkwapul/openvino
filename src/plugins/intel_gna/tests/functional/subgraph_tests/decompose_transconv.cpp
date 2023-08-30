@@ -13,25 +13,25 @@
 
 namespace SubgraphTestsDefinitions {
 
-using convBackPropParams = std::tuple<InferenceEngine::SizeVector,  // Kernel size
-                                      InferenceEngine::SizeVector,  // Strides
-                                      std::vector<ptrdiff_t>,       // Pad begin
-                                      std::vector<ptrdiff_t>,       // Pad end
-                                      InferenceEngine::SizeVector,  // Dilation
-                                      size_t,                       // Num out channels
-                                      ngraph::op::PadType           // Padding type
-                                      >;
+using transConvParams = std::tuple<InferenceEngine::SizeVector,  // Kernel size
+                                   InferenceEngine::SizeVector,  // Strides
+                                   std::vector<ptrdiff_t>,       // Pad begin
+                                   std::vector<ptrdiff_t>,       // Pad end
+                                   InferenceEngine::SizeVector,  // Dilation
+                                   size_t,                       // Num out channels
+                                   ngraph::op::PadType           // Padding type
+                                   >;
 
-using convBackPropSubraphParams = std::tuple<convBackPropParams,                 // Convolution params
-                                             InferenceEngine::Precision,         // Net precision
-                                             InferenceEngine::SizeVector,        // Input shape
-                                             std::map<std::string, std::string>  // Configuration
-                                             >;
+using transConvSubraphParams = std::tuple<transConvParams,                    // Convolution params
+                                          InferenceEngine::Precision,         // Net precision
+                                          InferenceEngine::SizeVector,        // Input shape
+                                          std::map<std::string, std::string>  // Configuration
+                                          >;
 
-class DecomposeTransConvTest : public testing::WithParamInterface<convBackPropSubraphParams>,
+class DecomposeTransConvTest : public testing::WithParamInterface<transConvSubraphParams>,
                                virtual public LayerTestsUtils::LayerTestsCommon {
 public:
-    static std::string getTestCaseName(const testing::TestParamInfo<convBackPropSubraphParams>& obj);
+    static std::string getTestCaseName(const testing::TestParamInfo<transConvSubraphParams>& obj);
 
 protected:
     void SetUp() override;
@@ -39,9 +39,9 @@ protected:
     // InferenceEngine::Blob::Ptr GenerateInput(const InferenceEngine::InputInfo& inputInfo) const override;
 };
 
-std::string DecomposeTransConvTest::getTestCaseName(const testing::TestParamInfo<convBackPropSubraphParams>& obj) {
+std::string DecomposeTransConvTest::getTestCaseName(const testing::TestParamInfo<transConvSubraphParams>& obj) {
     std::ostringstream result;
-    convBackPropParams convParams;
+    transConvParams convParams;
     InferenceEngine::Precision netPrecision = InferenceEngine::Precision::UNSPECIFIED;
     InferenceEngine::SizeVector inputShape;
     std::map<std::string, std::string> configuration;
@@ -81,7 +81,7 @@ InferenceEngine::Blob::Ptr ConvolutionBackpropSubgraphTest::GenerateInput(
 void DecomposeTransConvTest::SetUp() {
     targetDevice = CommonTestUtils::DEVICE_GNA;
     std::map<std::string, std::string> tempConfig;
-    convBackPropParams convParams;
+    transConvParams convParams;
     InferenceEngine::SizeVector inputShape;
     auto netPrecision = InferenceEngine::Precision::UNSPECIFIED;
 
@@ -190,7 +190,7 @@ const std::vector<ptrdiff_t> padBegin2D{1, 0};
 const std::vector<ptrdiff_t> padEnd2D{1, 0};
 const InferenceEngine::SizeVector dilation2D{1, 1};
 auto convParamsTest7 =
-    convBackPropParams{kernelSize2D, strides2D, padBegin2D, padEnd2D, dilation2D, numOutChannels, paddingType};
+    transConvParams{kernelSize2D, strides2D, padBegin2D, padEnd2D, dilation2D, numOutChannels, paddingType};
 
 const auto paramsTest7 = ::testing::Combine(::testing::Values(convParamsTest7),
                                             ::testing::ValuesIn(netPrecisions),
@@ -202,7 +202,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest7,
                          paramsTest7,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest8 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+auto convParamsTest8 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
 
 const auto paramsTest8 = ::testing::Combine(::testing::Values(convParamsTest8),
                                             ::testing::ValuesIn(netPrecisions),
@@ -214,7 +214,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8,
                          paramsTest8,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest8s = convBackPropParams{{3, 1}, {2, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+auto convParamsTest8s = transConvParams{{3, 1}, {2, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
 
 const auto paramsTest8s = ::testing::Combine(::testing::Values(convParamsTest8s),
                                              ::testing::ValuesIn(netPrecisions),
@@ -226,7 +226,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8s,
                          paramsTest8s,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest8_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+auto convParamsTest8_2 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
 
 const auto paramsTest8_2 = ::testing::Combine(::testing::Values(convParamsTest8_2),
                                               ::testing::ValuesIn(netPrecisions),
@@ -238,7 +238,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2,
                          paramsTest8_2,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest8_1_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+auto convParamsTest8_1_2 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
 
 const auto paramsTest8_1_2 = ::testing::Combine(::testing::Values(convParamsTest8_1_2),
                                                 ::testing::ValuesIn(netPrecisions),
@@ -250,7 +250,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_1_2,
                          paramsTest8_1_2,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest8_2_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+auto convParamsTest8_2_2 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
 
 const auto paramsTest8_2_2 = ::testing::Combine(::testing::Values(convParamsTest8_2_2),
                                                 ::testing::ValuesIn(netPrecisions),
@@ -262,7 +262,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2_2,
                          paramsTest8_2_2,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest8_4_4 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {4}, paddingType};
+auto convParamsTest8_4_4 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {4}, paddingType};
 
 const auto paramsTest8_4_4 = ::testing::Combine(::testing::Values(convParamsTest8_4_4),
                                                 ::testing::ValuesIn(netPrecisions),
@@ -274,7 +274,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_4_4,
                          paramsTest8_4_4,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest8_8_8 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {8}, paddingType};
+auto convParamsTest8_8_8 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {8}, paddingType};
 
 const auto paramsTest8_8_8 = ::testing::Combine(::testing::Values(convParamsTest8_8_8),
                                                 ::testing::ValuesIn(netPrecisions),
@@ -286,7 +286,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_8_8,
                          paramsTest8_8_8,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest16 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
+auto convParamsTest16 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {1}, paddingType};
 
 const auto paramsTest16 = ::testing::Combine(::testing::Values(convParamsTest16),
                                              ::testing::ValuesIn(netPrecisions),
@@ -298,7 +298,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16,
                          paramsTest16,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest16_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+auto convParamsTest16_2 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
 
 const auto paramsTest16_2 = ::testing::Combine(::testing::Values(convParamsTest16_2),
                                                ::testing::ValuesIn(netPrecisions),
@@ -310,7 +310,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16_2,
                          paramsTest16_2,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest16_2_2 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
+auto convParamsTest16_2_2 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {2}, paddingType};
 
 const auto paramsTest16_2_2 = ::testing::Combine(::testing::Values(convParamsTest16_2_2),
                                                  ::testing::ValuesIn(netPrecisions),
@@ -322,7 +322,7 @@ INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16_2_2,
                          paramsTest16_2_2,
                          DecomposeTransConvTest::getTestCaseName);
 
-auto convParamsTest19_64_64 = convBackPropParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {64}, paddingType};
+auto convParamsTest19_64_64 = transConvParams{{3, 1}, {3, 1}, {1, 0}, {1, 0}, {1, 1}, {64}, paddingType};
 
 const auto paramsTest19_64_64 = ::testing::Combine(::testing::Values(convParamsTest19_64_64),
                                                    ::testing::ValuesIn(netPrecisions),
