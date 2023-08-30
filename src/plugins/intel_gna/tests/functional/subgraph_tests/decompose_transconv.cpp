@@ -197,7 +197,7 @@ const auto paramsTest7 = ::testing::Combine(::testing::Values(convParamsTest7),
                                             ::testing::Values(inputShape2D),
                                             ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest7,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest7,
                          DecomposeTransConvTest,
                          paramsTest7,
                          DecomposeTransConvTest::getTestCaseName);
@@ -209,7 +209,7 @@ const auto paramsTest8 = ::testing::Combine(::testing::Values(convParamsTest8),
                                             ::testing::Values(InferenceEngine::SizeVector{1, 1, 8, 1}),
                                             ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest8,
                          DecomposeTransConvTest,
                          paramsTest8,
                          DecomposeTransConvTest::getTestCaseName);
@@ -221,7 +221,7 @@ const auto paramsTest8s = ::testing::Combine(::testing::Values(convParamsTest8s)
                                              ::testing::Values(InferenceEngine::SizeVector{1, 1, 8, 1}),
                                              ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8s,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest8s,
                          DecomposeTransConvTest,
                          paramsTest8s,
                          DecomposeTransConvTest::getTestCaseName);
@@ -233,7 +233,7 @@ const auto paramsTest8_2 = ::testing::Combine(::testing::Values(convParamsTest8_
                                               ::testing::Values(InferenceEngine::SizeVector{1, 1, 8, 1}),
                                               ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest8_2,
                          DecomposeTransConvTest,
                          paramsTest8_2,
                          DecomposeTransConvTest::getTestCaseName);
@@ -245,7 +245,7 @@ const auto paramsTest8_1_2 = ::testing::Combine(::testing::Values(convParamsTest
                                                 ::testing::Values(InferenceEngine::SizeVector{1, 2, 8, 1}),
                                                 ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_1_2,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest8_1_2,
                          DecomposeTransConvTest,
                          paramsTest8_1_2,
                          DecomposeTransConvTest::getTestCaseName);
@@ -257,7 +257,7 @@ const auto paramsTest8_2_2 = ::testing::Combine(::testing::Values(convParamsTest
                                                 ::testing::Values(InferenceEngine::SizeVector{1, 2, 8, 1}),
                                                 ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_2_2,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest8_2_2,
                          DecomposeTransConvTest,
                          paramsTest8_2_2,
                          DecomposeTransConvTest::getTestCaseName);
@@ -269,7 +269,7 @@ const auto paramsTest8_4_4 = ::testing::Combine(::testing::Values(convParamsTest
                                                 ::testing::Values(InferenceEngine::SizeVector{1, 4, 8, 1}),
                                                 ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_4_4,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest8_4_4,
                          DecomposeTransConvTest,
                          paramsTest8_4_4,
                          DecomposeTransConvTest::getTestCaseName);
@@ -281,7 +281,7 @@ const auto paramsTest8_8_8 = ::testing::Combine(::testing::Values(convParamsTest
                                                 ::testing::Values(InferenceEngine::SizeVector{1, 8, 8, 1}),
                                                 ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest8_8_8,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest8_8_8,
                          DecomposeTransConvTest,
                          paramsTest8_8_8,
                          DecomposeTransConvTest::getTestCaseName);
@@ -293,7 +293,7 @@ const auto paramsTest16 = ::testing::Combine(::testing::Values(convParamsTest16)
                                              ::testing::Values(InferenceEngine::SizeVector{1, 1, 16, 1}),
                                              ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest16,
                          DecomposeTransConvTest,
                          paramsTest16,
                          DecomposeTransConvTest::getTestCaseName);
@@ -305,7 +305,7 @@ const auto paramsTest16_2 = ::testing::Combine(::testing::Values(convParamsTest1
                                                ::testing::Values(InferenceEngine::SizeVector{1, 1, 16, 1}),
                                                ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16_2,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest16_2,
                          DecomposeTransConvTest,
                          paramsTest16_2,
                          DecomposeTransConvTest::getTestCaseName);
@@ -317,7 +317,7 @@ const auto paramsTest16_2_2 = ::testing::Combine(::testing::Values(convParamsTes
                                                  ::testing::Values(InferenceEngine::SizeVector{1, 2, 16, 1}),
                                                  ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest16_2_2,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest16_2_2,
                          DecomposeTransConvTest,
                          paramsTest16_2_2,
                          DecomposeTransConvTest::getTestCaseName);
@@ -329,7 +329,7 @@ const auto paramsTest19_64_64 = ::testing::Combine(::testing::Values(convParamsT
                                                    ::testing::Values(InferenceEngine::SizeVector{1, 64, 19, 1}),
                                                    ::testing::ValuesIn(configs));
 
-INSTANTIATE_TEST_SUITE_P(smoke_ConvolutionBackpropDataTest19_64_64,
+INSTANTIATE_TEST_SUITE_P(smoke_DecomposeTransConvTest19_64_64,
                          DecomposeTransConvTest,
                          paramsTest19_64_64,
                          DecomposeTransConvTest::getTestCaseName);
