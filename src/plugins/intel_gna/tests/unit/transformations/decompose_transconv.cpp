@@ -350,7 +350,7 @@ TEST_P(DecomposeTransConvTest, CompareFunctions) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    DecomposeTransconv,
+    DecomposeTransConv,
     DecomposeTransConvTest,
     testing::Values(
         // test7:
