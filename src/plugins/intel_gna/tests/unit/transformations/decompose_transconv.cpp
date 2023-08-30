@@ -108,7 +108,7 @@ using TransconvParam = std::pair<TransconvInitParam, TransconvRefParam>;
 
 using ILS = typename std::initializer_list<std::size_t>;
 
-class DecomposeTransconvTest : public CommonTestUtils::TestsCommon, public testing::WithParamInterface<TransconvParam> {
+class DecomposeTransConvTest : public CommonTestUtils::TestsCommon, public testing::WithParamInterface<TransconvParam> {
 public:
     std::shared_ptr<ov::Model> m, m_ref;
 
@@ -120,17 +120,17 @@ private:
                                                            const TransconvRefParam& sliceInputs);
 };
 
-void DecomposeTransconvTest::SetUp() {
+void DecomposeTransConvTest::SetUp() {
     TransconvParam param = GetParam();
 
     m = createInitialModel(param.first);
 
     m_ref = createReferenceModel(param.first, param.second);
 
-    ov::serialize(m_ref, "DecomposeTransconvTestRerefence.xml", "DecomposeTransconvTestRerefence.bin");
+    ov::serialize(m_ref, "DecomposeTransConvTestRerefence.xml", "DecomposeTransConvTestRerefence.bin");
 }
 
-std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const TransconvInitParam& param) {
+std::shared_ptr<ov::Model> DecomposeTransConvTest::createInitialModel(const TransconvInitParam& param) {
     ov::OutputVector upstream;
     ov::Shape new_shape;
 
@@ -197,7 +197,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createInitialModel(const Tran
     return model;
 }
 
-std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const TransconvInitParam& param,
+std::shared_ptr<ov::Model> DecomposeTransConvTest::createReferenceModel(const TransconvInitParam& param,
                                                                         const TransconvRefParam& sliceInputs) {
     ov::Shape new_shape;
 
@@ -336,7 +336,7 @@ std::shared_ptr<ov::Model> DecomposeTransconvTest::createReferenceModel(const Tr
     return model;
 }
 
-TEST_P(DecomposeTransconvTest, CompareFunctions) {
+TEST_P(DecomposeTransConvTest, CompareFunctions) {
     const auto orig_shape = m->get_output_partial_shape(0);
     ngraph::pass::Manager manager;
     manager.register_pass<ov::pass::InitNodeInfo>();
@@ -351,7 +351,7 @@ TEST_P(DecomposeTransconvTest, CompareFunctions) {
 
 INSTANTIATE_TEST_SUITE_P(
     DecomposeTransconv,
-    DecomposeTransconvTest,
+    DecomposeTransConvTest,
     testing::Values(
         // test7:
         std::make_pair(
