@@ -33,7 +33,6 @@ typedef std::tuple<convBackpropSpecificParams,
                    InferenceEngine::Layout,             // Output layout
                    InferenceEngine::SizeVector,         // Input shapes
                    InferenceEngine::SizeVector,         // Output shapes
-                   std::map<std::string, std::string>,  // Configuration
                    LayerTestsUtils::TargetDevice        // Device name
                    >
     convBackpropLayerTestParamsSet;
