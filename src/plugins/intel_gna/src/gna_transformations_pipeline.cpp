@@ -71,7 +71,7 @@ void TransformationsPipeline::apply(const std::shared_ptr<ov::Model>& model,
     ov::pass::Manager manager;
     manager.register_pass<ov::pass::InitNodeInfo>();
 
-    manager.register_pass<ov::intel_gna::pass::TransposeConvolutionDecomposition>();
+    manager.register_pass<ov::intel_gna::pass::DecomposeTransConv>();
 
     // In OV API 2.0(IRv10) default convertion to fp32 (inputs, outputs and weights) is disabled
     // and we need to run the ConvertPrecision transformation to support old networks.

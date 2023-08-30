@@ -212,7 +212,7 @@ static void InsertActivation(ov::OutputVector& upstream,
     }
 }
 
-bool TransposeConvolutionDecomposition::run_on_model(const std::shared_ptr<ov::Model>& m) {
+bool DecomposeTransConv::run_on_model(const std::shared_ptr<ov::Model>& m) {
     // Traverse nGraph Function in topological order
     bool is_graph_modfied = false;
     for (auto& node : m->get_ordered_ops()) {

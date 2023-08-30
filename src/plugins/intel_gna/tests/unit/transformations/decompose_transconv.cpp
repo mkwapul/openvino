@@ -340,7 +340,7 @@ TEST_P(DecomposeTransconvTest, CompareFunctions) {
     const auto orig_shape = m->get_output_partial_shape(0);
     ngraph::pass::Manager manager;
     manager.register_pass<ov::pass::InitNodeInfo>();
-    manager.register_pass<ov::intel_gna::pass::TransposeConvolutionDecomposition>();
+    manager.register_pass<ov::intel_gna::pass::DecomposeTransConv>();
     manager.run_passes(m);
 
     auto res = compare_functions(m, m_ref);

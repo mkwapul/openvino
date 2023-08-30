@@ -14,7 +14,7 @@ namespace pass {
  * @ingroup ie_transformation_common_api
  * @brief TransposeConvolutionDecomposition transformation breaks down 2d conv into set of 1d conv.
  */
-class TransposeConvolutionDecomposition : public ov::pass::ModelPass {
+class DecomposeTransConv : public ov::pass::ModelPass {
 public:
     OPENVINO_RTTI("TransposeConvolutionDecomposition", "0");
     bool run_on_model(const std::shared_ptr<ov::Model>& m) override;
