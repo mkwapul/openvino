@@ -505,16 +505,8 @@ bool DecomposeTransConv::run_on_model(const std::shared_ptr<ov::Model>& m) {
                 auto new_weights_const =
                     Constant::create(ngraph::element::f32, Shape{C_out, C_in, K_h, K_w}, new_weights);
 
-                auto conv_weights_fq = std::make_shared<FakeQuantize>(
-                    new_weights_const,
-                    Constant::create(ov::element::f32, ov::Shape{1}, {-1.6015920639038086}),
-                    Constant::create(ov::element::f32, ov::Shape{1}, {1.6015920639038086}),
-                    Constant::create(ov::element::f32, ov::Shape{1}, {-1.6015920639038086}),
-                    Constant::create(ov::element::f32, ov::Shape{1}, {1.6015920639038086}),
-                    65535);  // levels
-
                 auto new_conv = std::make_shared<Convolution>(new_transpose->output(0),
-                                                              conv_weights_fq->output(0),
+                                                              new_weights_const->output(0),
                                                               Strides{1, 1},
                                                               CoordinateDiff{0, 0},
                                                               CoordinateDiff{0, 0},
