@@ -142,7 +142,7 @@ void make_gna_pwl(const DnnActivation& fun,
                 y_lower = DoubleToInt16(x_lower * out_scale / in_scale);
         }
 
-        gna_pwl[0].yBase = std::max(FloatToInt32(y_lower * fun.args.lrelu.negative_slope), static_cast<int32_t>(y_min));
+        gna_pwl[0].yBase = std::min(std::max(FloatToInt32(y_lower * fun.args.lrelu.negative_slope), static_cast<int32_t>(y_min)), static_cast<int32_t>(y_max));
         s = gna_slope(fun.args.lrelu.negative_slope, in_scale, out_scale);
         gna_pwl[0].xBase = (x_lower & XBASEMASK) | s.slope_scale_index;  // zero out the 2 lsb
         gna_pwl[0].slope = DoubleToInt16(s.slope * s.slope_scale);
