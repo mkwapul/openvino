@@ -30,6 +30,7 @@
 #include "serial/headers/2dot8/gna_model_header.hpp"
 #include "serial/headers/2dot9/gna_model_header.hpp"
 #include "serial/headers/latest/gna_model_header.hpp"
+#include "gna2_to_ir.hpp"
 
 using namespace ov::intel_gna;
 
@@ -427,6 +428,9 @@ void GNAModelSerial::Export(const GnaAllocations& allocations, std::ostream& os)
 
     const std::vector<Gna2Operation> layers(gna2model_->Operations,
                                             gna2model_->Operations + gna2model_->NumberOfOperations);
+
+    auto inputs = inputs_.Get()[0].ptrs;
+    GnaWriteXml("gna_graph.xml", *gna2model_, inputs);
 
     const auto gnaGraphSize = allocations.GetSizeForExport();
     const auto& allocationsOrdered = allocations.GetAllocationsInExportOrder();
