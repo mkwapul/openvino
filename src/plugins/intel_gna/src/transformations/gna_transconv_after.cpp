@@ -571,6 +571,9 @@ bool ngraph::pass::GnaTransposeConvolutionPostDecomposition::run_on_model(const 
                 ov::Shape old_shape = upstream[0].get_shape();
                 ov::Shape new_shape = {N, weights_shape[1], H_out, 1ull};
                 if (new_shape == old_shape) {
+                    auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(upstream[0],
+                        op::Constant::create(ngraph::element::i64, Shape{2}, {weights_shape[1], H_out })->output(0), false);
+                    upstream[0] = new_reshape->output(0);
                     parts.push_back(upstream[0]);
                 } else {
                     auto num_splits = conv_H;
