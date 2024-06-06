@@ -7,7 +7,7 @@ set(TARGET_NAME "make_ngraph")
 file (GLOB MAIN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file (GLOB MAIN_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-ie_add_sample(NAME make_ngraph
+ov_add_sample(NAME make_ngraph
               SOURCES ${MAIN_SRC}
               HEADERS ${MAIN_HEADERS}
               DEPENDENCIES format_reader inference_engine_transformations)
