@@ -224,11 +224,15 @@ bool ngraph::pass::GnaTransposeConvolutionPostDecomposition::run_on_model(const 
 
         if (transpose_before) {
             fq_before = std::dynamic_pointer_cast<ngraph::opset1::FakeQuantize>(transpose_before->input_value(0).get_node_shared_ptr());
-            input = transpose_before->input_value(0);
+            // input = transpose_before->input_value(0);
+            conv->input(0).replace_source_output(transpose_before->input_value(0));
+            input = conv->input_value(0);
         }
         if (fq_before) {
-            input = fq_before->input_value(0);
-        } 
+            // input = fq_before->input_value(0);
+            conv->input(0).replace_source_output(fq_before->input_value(0));
+            input = conv->input_value(0);
+        }
 
         if (weights_fq) {
             weights_const = std::dynamic_pointer_cast<ngraph::opset1::Constant>(weights_fq->input_value(0).get_node_shared_ptr());
