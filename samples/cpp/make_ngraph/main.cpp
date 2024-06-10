@@ -999,7 +999,8 @@ std::shared_ptr<Function> createNgraphFunctionCustomer(std::vector<std::string> 
     }
     auto output_2d = std::make_shared<ngraph::opset1::Reshape>(
         upstream[0],
-        op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, num_elements})->output(0),
+        op::Constant::create(ngraph::element::i64, Shape{2}, std::initializer_list<size_t>{1ull, num_elements})
+            ->output(0),
         false);
     setNodeNames(output_2d, "Reshape2D");
     auto result_full = std::make_shared<op::Result>(output_2d->output(0));
