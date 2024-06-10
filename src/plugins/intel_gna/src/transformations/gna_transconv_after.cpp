@@ -203,7 +203,7 @@ bool ngraph::pass::GnaTransposeConvolutionPostDecomposition::run_on_model(const 
             continue;
         }
 
-        Output<Node>& input = conv->input_value(0);
+        Output<Node> input = conv->input_value(0);
         const Output<Node>& weights = conv->input_value(1);
         auto conv_name = conv->get_friendly_name();
         auto input_shape = input.get_shape();
