@@ -36,7 +36,7 @@
 
 size_t GetChannels(ov::Output<ov::Node>& parent);
 std::shared_ptr<ov::Node> AdlChannelPadTensor(ov::Output<ov::Node> parent);
-std::shared_ptr<ov::Node> AdlChannelPadKernel(ov::Output<ov::Node>& weights_const_output, size_t C);
+std::shared_ptr<ov::Node> AdlChannelPadKernel(const ov::Output<ov::Node>& weights_const_output, size_t C);
 std::shared_ptr<ov::Node> NchwToNhwc(ov::Output<ov::Node> parent);
 std::shared_ptr<ov::Node> AdlInsertConvolutionAddRelu(ov::Output<ov::Node> parent,
     std::shared_ptr<ngraph::opset1::Convolution> conv,
