@@ -156,7 +156,6 @@ std::shared_ptr<ov::Node> NchwToNhwc(Output<Node> parent) {
 
     auto input_shape = parent.get_shape();
     if ((input_shape.size() == 4) && (input_shape[0] == 1)) {
-        size_t N = input_shape[input_shape.size() - 4];
         size_t C = input_shape[input_shape.size() - 3];
         size_t H = input_shape[input_shape.size() - 2];
         size_t W = input_shape[input_shape.size() - 1];
@@ -1112,16 +1111,12 @@ std::shared_ptr<ov::Node> GnaNewConvBias(ov::Output<ov::Node>& C) {
 std::shared_ptr<ov::Node> InsertGnaMatMulAdd2D(ov::Output<ov::Node>& A, ov::Output<ov::Node>& B, bool transpose_a, bool transpose_b, bool out_2D) {
     auto A_shape = A.get_shape();
     auto B_shape = B.get_shape();
-    auto H = A_shape[0];
-    auto W = A_shape[1];
     ov::Shape out_shape = {A_shape[0], B_shape[1]};
     ov::Output<ov::Node> upstream = A;
     if (transpose_b) out_shape[1] = B_shape[0];
     if (transpose_a) {
         auto transpose = std::make_shared<Transpose>(A, Constant::create(ov::element::Type_t::i64, ov::Shape{2}, {1,0}));
         upstream = transpose->output(0);
-        auto H = A_shape[0];
-        auto W = A_shape[1];
         out_shape[0] = A_shape[1];
     }
     auto reshape = std::make_shared<ov::op::v1::Reshape>(upstream, Constant::create(ov::element::i64, ov::Shape{4}, {1ull, A_shape[0], 1ull, A_shape[1]})->output(0), false);
