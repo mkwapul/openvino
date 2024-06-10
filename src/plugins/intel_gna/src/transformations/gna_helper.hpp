@@ -34,6 +34,8 @@
 
 #define ADL_GNA_MAX_CHANNELS 96
 
+using ShapeList = std::initializer_list<size_t>;
+
 size_t GetChannels(ov::Output<ov::Node>& parent);
 std::shared_ptr<ov::Node> AdlChannelPadTensor(ov::Output<ov::Node> parent);
 std::shared_ptr<ov::Node> AdlChannelPadKernel(const ov::Output<ov::Node>& weights_const_output, size_t C);

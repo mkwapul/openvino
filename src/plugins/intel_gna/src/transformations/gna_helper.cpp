@@ -52,7 +52,7 @@ std::shared_ptr<ov::Node> AdlChannelPadTensor(Output<Node> parent) {
         if ((C < 8) && (((C * H * W) % 32) == 0)) {
             auto reshape = std::make_shared<ngraph::opset1::Reshape>(
                 parent,
-                op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, C * H * W})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{2}, ShapeList{1ull, C * H * W})->output(0),
                 false);
             std::vector<float> padding((8 - C) * H * W, 0.0f);
             auto padding_const = op::Constant::create(ngraph::element::f32, Shape{8 - C, H * W}, padding);
@@ -62,12 +62,12 @@ std::shared_ptr<ov::Node> AdlChannelPadTensor(Output<Node> parent) {
             auto concat = std::make_shared<op::Concat>(chunks, 0);
             result = std::make_shared<ngraph::opset1::Reshape>(
                 concat->output(0),
-                op::Constant::create(ngraph::element::i64, Shape{4}, {N, 8ull, H, W})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{4}, ShapeList{N, 8ull, H, W})->output(0),
                 false);
         } else if (C < 8) {  // unaligned copy ==> must work-around GNA plugin memory explosion
             auto reshape = std::make_shared<ngraph::opset1::Reshape>(
                 parent,
-                op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, C * H * W})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{2}, ShapeList{1ull, C * H * W})->output(0),
                 false);
             // perform smallest amount of padding needed to bring size to multiple of 32
             size_t padding_size = ((C * H * W) / 32 + 1) * 32 - (C * H * W);
@@ -100,7 +100,7 @@ std::shared_ptr<ov::Node> AdlChannelPadTensor(Output<Node> parent) {
                                                      {0ull, 0ull}),  // begin slice index
                     ngraph::opset1::Constant::create(ngraph::element::i64,
                                                      ngraph::Shape{2},
-                                                     {0ull, 8 * H * W}),  // end slice index
+                                                     ShapeList{0ull, 8 * H * W}),  // end slice index
                     ngraph::opset1::Constant::create(ngraph::element::i64, ngraph::Shape{2}, {1ull, 1ull}),  // strides
                     std::vector<int64_t>{1, 0},  // begin mask
                     std::vector<int64_t>{1, 0},  // end mask
@@ -111,7 +111,7 @@ std::shared_ptr<ov::Node> AdlChannelPadTensor(Output<Node> parent) {
             }
             result = std::make_shared<ngraph::opset1::Reshape>(
                 chunks[0],
-                op::Constant::create(ngraph::element::i64, Shape{4}, {N, 8ull, H, W})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{4}, ShapeList{N, 8ull, H, W})->output(0),
                 false);
         }
     }
@@ -169,7 +169,7 @@ std::shared_ptr<ov::Node> NchwToNhwc(Output<Node> parent) {
             auto new_transpose = std::make_shared<op::Transpose>(new_reshape->output(0), transpose_const);
             result = std::make_shared<ngraph::opset1::Reshape>(
                 new_transpose->output(0),
-                op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, H, W, C})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{4}, ShapeList{1ull, H, W, C})->output(0),
                 false);
         }
     }
@@ -415,7 +415,7 @@ std::shared_ptr<ov::Node> AdlInsertConvolutionAddReluHpadCsplit(Output<Node> par
                 auto concat = std::make_shared<op::Concat>(chunks[j], 0);
                 auto new_reshape = std::make_shared<ngraph::opset1::Reshape>(
                     concat->output(0),
-                    op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, H_new, W, c_split_lengths[j]})
+                    op::Constant::create(ngraph::element::i64, Shape{4}, ShapeList{1ull, H_new, W, c_split_lengths[j]})
                         ->output(0),
                     false);
                 upstream.push_back(new_reshape->output(0));
@@ -484,7 +484,7 @@ std::shared_ptr<ov::Node> AdlInsertConvolutionAddReluHpadCsplit(Output<Node> par
                                                      {0ull, 0ull, 0ull, 0ull}),  // begin slice index
                     ngraph::opset1::Constant::create(ngraph::element::i64,
                                                      ngraph::Shape{4},
-                                                     {0ull, H / stride[0], 0ull, 0ull}),  // end slice index
+                                                     ShapeList{0ull, H / stride[0], 0ull, 0ull}),  // end slice index
                     ngraph::opset1::Constant::create(ngraph::element::i64,
                                                      ngraph::Shape{4},
                                                      {1ull, 1ull, 1ull, 1ull}),  // strides
@@ -612,7 +612,7 @@ std::shared_ptr<ov::Node> AdlInsertSplitConvolutionAddReluHpadCsplit(std::vector
                                                      {0ull, 0ull, 0ull, 0ull}),  // begin slice index
                     ngraph::opset1::Constant::create(ngraph::element::i64,
                                                      ngraph::Shape{4},
-                                                     {0ull, H / stride[0], 0ull, 0ull}),  // end slice index
+                                                     ShapeList{0ull, H / stride[0], 0ull, 0ull}),  // end slice index
                     ngraph::opset1::Constant::create(ngraph::element::i64,
                                                      ngraph::Shape{4},
                                                      {1ull, 1ull, 1ull, 1ull}),  // strides
@@ -660,7 +660,7 @@ std::shared_ptr<ov::Node> AdlBigTranspose2d(Output<Node> parent) {
         if ((input_shape.size() == 4) && (input_shape.size() == 3)) {
             auto reshape = std::make_shared<ngraph::opset1::Reshape>(
                 upstream[0],
-                op::Constant::create(ngraph::element::i64, Shape{2}, {1ull, H * W})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{2}, ShapeList{1ull, H * W})->output(0),
                 false);
             upstream[0] = reshape->output(0);
         }
@@ -725,13 +725,13 @@ std::shared_ptr<ov::Node> AdlBigTranspose2d(Output<Node> parent) {
         if (input_shape.size() == 3) {
             auto reshape = std::make_shared<ngraph::opset1::Reshape>(
                 upstream[0],
-                op::Constant::create(ngraph::element::i64, Shape{3}, {1ull, W, H})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{3}, ShapeList{1ull, W, H})->output(0),
                 false);
             upstream[0] = reshape->output(0);
         } else if (input_shape.size() == 4) {
             auto reshape = std::make_shared<ngraph::opset1::Reshape>(
                 upstream[0],
-                op::Constant::create(ngraph::element::i64, Shape{4}, {1ull, 1ull, W, H})->output(0),
+                op::Constant::create(ngraph::element::i64, Shape{4}, ShapeList{1ull, 1ull, W, H})->output(0),
                 false);
             upstream[0] = reshape->output(0);
         }
@@ -1052,15 +1052,25 @@ std::shared_ptr<ov::Node> GnaNewConvWeights(ov::Output<ov::Node>& B, bool transp
         auto weights_shape = B.get_shape();
         if (transpose_b) {
             // no additional transpose since transpose for MatMul and transpose for convolution cancel each other
-            auto reshape = std::make_shared<ov::op::v1::Reshape>(B,
-                Constant::create(ov::element::i64, ov::Shape{4}, {weights_shape[0], 1ull, 1ull, weights_shape[1]})->output(0),false);
+            auto reshape = std::make_shared<ov::op::v1::Reshape>(
+                B,
+                Constant::create(ov::element::i64,
+                                 ov::Shape{4},
+                                 ShapeList{weights_shape[0], 1ull, 1ull, weights_shape[1]})
+                    ->output(0),
+                false);
             new_conv_weights = reshape;
         } else {
             // transpose weight tensor
             auto transpose = std::make_shared<Transpose>(B, 
                 Constant::create(ov::element::Type_t::i64, ov::Shape{2}, {1,0}));
-            auto reshape = std::make_shared<ov::op::v1::Reshape>(transpose->output(0), 
-                Constant::create(ov::element::i64, ov::Shape{4}, {weights_shape[1], 1ull, 1ull, weights_shape[0]})->output(0),false);
+            auto reshape = std::make_shared<ov::op::v1::Reshape>(
+                transpose->output(0),
+                Constant::create(ov::element::i64,
+                                 ov::Shape{4},
+                                 ShapeList{weights_shape[1], 1ull, 1ull, weights_shape[0]})
+                    ->output(0),
+                false);
             new_conv_weights = reshape;
         }
     }
@@ -1099,8 +1109,10 @@ std::shared_ptr<ov::Node> GnaNewConvBias(ov::Output<ov::Node>& C) {
             C_size *= C_shape[i];
         }
         auto bias = (bias_fq) ? bias_fq->output(0) : C;
-        auto reshape = std::make_shared<ov::op::v1::Reshape>(bias,
-            Constant::create(ov::element::i64, ov::Shape{4}, {1ull, 1ull, 1ull, C_size})->output(0), false);
+        auto reshape = std::make_shared<ov::op::v1::Reshape>(
+            bias,
+            Constant::create(ov::element::i64, ov::Shape{4}, ShapeList{1ull, 1ull, 1ull, C_size})->output(0),
+            false);
         new_conv_bias = reshape;
     }
 
@@ -1119,7 +1131,10 @@ std::shared_ptr<ov::Node> InsertGnaMatMulAdd2D(ov::Output<ov::Node>& A, ov::Outp
         upstream = transpose->output(0);
         out_shape[0] = A_shape[1];
     }
-    auto reshape = std::make_shared<ov::op::v1::Reshape>(upstream, Constant::create(ov::element::i64, ov::Shape{4}, {1ull, A_shape[0], 1ull, A_shape[1]})->output(0), false);
+    auto reshape = std::make_shared<ov::op::v1::Reshape>(
+        upstream,
+        Constant::create(ov::element::i64, ov::Shape{4}, ShapeList{1ull, A_shape[0], 1ull, A_shape[1]})->output(0),
+        false);
     auto weights = GnaNewConvWeights(B, transpose_b);
     auto conv = std::make_shared<ov::intel_gna::op::GNAConvolution>(reshape->output(0), weights->output(0),
         ov::Strides{1, 1}, ov::CoordinateDiff{0, 0}, ov::CoordinateDiff{0, 0}, ov::Strides{1, 1}, ov::op::PadType::VALID );
@@ -1148,7 +1163,10 @@ std::shared_ptr<ov::Node> InsertGnaMatMulAdd2D(ov::Output<ov::Node>& A, ov::Outp
         W = A_shape[0];
         out_shape[0] = A_shape[1];
     }
-    auto reshape = std::make_shared<ov::op::v1::Reshape>(upstream, Constant::create(ov::element::i64, ov::Shape{4}, {1ull, H, 1ull, W})->output(0), false);
+    auto reshape = std::make_shared<ov::op::v1::Reshape>(
+        upstream,
+        Constant::create(ov::element::i64, ov::Shape{4}, ShapeList{1ull, H, 1ull, W})->output(0),
+        false);
     auto weights = GnaNewConvWeights(B, transpose_b);
     auto bias = GnaNewConvBias(C);
     auto conv = std::make_shared<ov::intel_gna::op::GNAConvolution>(reshape->output(0), weights->output(0), bias->output(0),
