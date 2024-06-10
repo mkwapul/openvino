@@ -166,13 +166,13 @@ void BuildKernelMap1D2(size_t dim_new, size_t pad_outer, size_t pad_additional, 
     {
         size_t output_index = 0;
         for (size_t i = 0; i < input_list.size(); i++) {
-            printf("position %llu:\nx%d .. x%d\n", output_index, input_list[i][0], input_list[i][1]);
+            printf("position %zu:\nx%d .. x%d\n", output_index, input_list[i][0], input_list[i][1]);
             for (uint32_t m = 0; m < kernel_list[i].size(); m++) {
                 for (uint32_t n = 0; n < kernel_list[i][m].size(); n++) {
                     if (kernel_list[i][m][n] == PAD_VALUE) {
                         printf("00 ");
                     } else {
-                        printf("k%llu ", kernel_list[i][m][n]);
+                        printf("k%lu ", kernel_list[i][m][n]);
                     }
                 }
                 printf("\n");
